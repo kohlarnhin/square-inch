@@ -1,0 +1,41 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient48" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="cardGradient48" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#f8fafc;stop-opacity:0.9" />
+    </linearGradient>
+    
+    <filter id="shadow48" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+  
+  <!-- 主背景 -->
+  <circle cx="24" cy="24" r="21" fill="url(#bgGradient48)" filter="url(#shadow48)"/>
+  
+  <!-- 网格容器 -->
+  <g transform="translate(24, 24)">
+    <!-- 3x3网格 -->
+    <rect x="-7" y="-7" width="4" height="4" rx="1" fill="url(#cardGradient48)"/>
+    <rect x="-1.5" y="-7" width="4" height="4" rx="1" fill="url(#cardGradient48)" opacity="0.8"/>
+    <rect x="4" y="-7" width="4" height="4" rx="1" fill="url(#cardGradient48)"/>
+    
+    <rect x="-7" y="-1.5" width="4" height="4" rx="1" fill="url(#cardGradient48)" opacity="0.8"/>
+    <rect x="-1.5" y="-1.5" width="4" height="4" rx="1" fill="url(#cardGradient48)"/>
+    <rect x="4" y="-1.5" width="4" height="4" rx="1" fill="url(#cardGradient48)" opacity="0.8"/>
+    
+    <rect x="-7" y="4" width="4" height="4" rx="1" fill="url(#cardGradient48)"/>
+    <rect x="-1.5" y="4" width="4" height="4" rx="1" fill="url(#cardGradient48)" opacity="0.8"/>
+    
+    <!-- 加号卡片 -->
+    <rect x="4" y="4" width="4" height="4" rx="1" fill="none" stroke="url(#cardGradient48)" stroke-width="0.6"/>
+    <line x1="6" y1="5" x2="6" y2="7" stroke="url(#cardGradient48)" stroke-width="0.6" stroke-linecap="round"/>
+    <line x1="5" y1="6" x2="7" y2="6" stroke="url(#cardGradient48)" stroke-width="0.6" stroke-linecap="round"/>
+  </g>
+</svg>

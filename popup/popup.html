@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>方寸</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="popup-container">
+        <!-- 主要内容 -->
+        <div class="popup-content">
+            <!-- Logo区域 -->
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <path d="M9 9h6v6"></path>
+                        <path d="M9 15l6-6"></path>
+                    </svg>
+                </div>
+                <h1 class="logo-title">方寸</h1>
+            </div>
+
+            <!-- 操作按钮 -->
+            <button class="main-btn" id="open-newtab">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15,3 21,3 21,9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+                打开导航页面
+            </button>
+
+            <!-- 说明文字 -->
+            <div class="description">
+                <p>也可以在任意页面右键选择"方寸"</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

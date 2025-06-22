@@ -1,0 +1,31 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圆形 -->
+  <circle cx="64" cy="64" r="60" fill="url(#gradient)" stroke="#ffffff" stroke-width="4"/>
+  
+  <!-- 渐变定义 -->
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 方寸图标 - 简化的网格设计 -->
+  <g transform="translate(32, 32)">
+    <!-- 外框 -->
+    <rect x="8" y="8" width="48" height="48" rx="8" fill="none" stroke="#ffffff" stroke-width="3"/>
+    
+    <!-- 内部网格 -->
+    <rect x="16" y="16" width="12" height="12" rx="2" fill="#ffffff" opacity="0.9"/>
+    <rect x="32" y="16" width="12" height="12" rx="2" fill="#ffffff" opacity="0.7"/>
+    <rect x="48" y="16" width="12" height="12" rx="2" fill="#ffffff" opacity="0.9"/>
+    
+    <rect x="16" y="32" width="12" height="12" rx="2" fill="#ffffff" opacity="0.7"/>
+    <rect x="32" y="32" width="12" height="12" rx="2" fill="#ffffff" opacity="0.9"/>
+    <rect x="48" y="32" width="12" height="12" rx="2" fill="#ffffff" opacity="0.7"/>
+    
+    <rect x="16" y="48" width="12" height="12" rx="2" fill="#ffffff" opacity="0.9"/>
+    <rect x="32" y="48" width="12" height="12" rx="2" fill="#ffffff" opacity="0.7"/>
+    <rect x="48" y="48" width="12" height="12" rx="2" fill="#ffffff" opacity="0.9"/>
+  </g>
+</svg>

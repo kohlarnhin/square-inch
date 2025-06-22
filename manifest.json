@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "方寸",
+  "version": "0.0.1",
+  "description": "于方寸之间，见天地之宽 - 个性化网站导航，快速访问常用网站",
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "contextMenus"
+  ],
+  
+  "host_permissions": [
+    "https://api.unsplash.com/*",
+    "https://www.google.com/*",
+    "https://favicon.yandex.net/*",
+    "https://icons.duckduckgo.com/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "方寸"
+  },
+  
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' data: https:;"
+  }
+}

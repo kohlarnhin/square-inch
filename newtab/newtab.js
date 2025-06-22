@@ -666,8 +666,13 @@ class SquareInch {
         // 全部标签
         const allTag = `
             <div class="tag-item ${this.currentTag === 'all' ? 'active' : ''}" data-tag="all">
-                <span class="tag-name">全部</span>
-                <span class="tag-count">${this.sites.length}</span>
+                <div class="tag-content">
+                    <span class="tag-name">全部</span>
+                    <span class="tag-count">${this.sites.length}</span>
+                </div>
+                <div class="tag-actions">
+                    <!-- 全部标签没有删除按钮，但保留空间以对齐 -->
+                </div>
             </div>
         `;
 
@@ -679,14 +684,18 @@ class SquareInch {
 
             return `
                 <div class="tag-item ${this.currentTag === tag.id ? 'active' : ''}" data-tag="${tag.id}">
-                    <span class="tag-name">${this.escapeHtml(tag.name)}</span>
-                    <span class="tag-count">${count}</span>
-                    <button class="tag-delete" data-tag-id="${tag.id}" title="删除标签">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
+                    <div class="tag-content">
+                        <span class="tag-name">${this.escapeHtml(tag.name)}</span>
+                        <span class="tag-count">${count}</span>
+                    </div>
+                    <div class="tag-actions">
+                        <button class="tag-delete" data-tag-id="${tag.id}" title="删除标签">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             `;
         }).join('');

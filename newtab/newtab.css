@@ -118,7 +118,6 @@ body {
     transition: var(--transition);
     display: flex;
     align-items: center;
-    justify-content: space-between;
     font-size: 0.875rem;
     color: var(--text-primary);
     position: relative;
@@ -143,6 +142,14 @@ body {
     transform: translateY(-1px);
 }
 
+/* 标签内容区域 */
+.tag-content {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
 /* 标签文字 */
 .tag-name {
     flex: 1;
@@ -159,14 +166,22 @@ body {
     margin-left: 0.5rem;
     flex-shrink: 0;
     line-height: 1.2; /* 与标签名称保持一致的行高 */
+    width: 20px; /* 固定宽度确保对齐 */
+    text-align: right; /* 右对齐 */
+}
+
+/* 标签操作区域 */
+.tag-actions {
+    width: 24px; /* 固定宽度，为删除按钮预留空间 */
     display: flex;
-    align-items: center; /* 垂直居中对齐 */
+    justify-content: center;
+    align-items: center;
+    margin-left: 0.5rem;
 }
 
 /* 标签删除按钮 */
 .tag-delete {
     opacity: 0;
-    margin-left: 0.5rem;
     padding: 0.25rem;
     border-radius: 4px;
     background: none;
@@ -174,7 +189,11 @@ body {
     color: inherit;
     cursor: pointer;
     transition: var(--transition);
-    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .tag-item:hover .tag-delete {

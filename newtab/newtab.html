@@ -13,18 +13,22 @@
         <div class="toolbar-container">
             <!-- 导入导出按钮 -->
             <div class="import-export-container">
-                <button id="export-btn" class="toolbar-btn" title="导出数据">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7,10 12,15 17,10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                <button id="export-btn" class="toolbar-btn export-btn" title="导出数据">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M8 12l4-4 4 4"/>
+                        <path d="M12 16V8"/>
+                        <path d="M16 20h4"/>
+                        <path d="M4 20h4"/>
                     </svg>
                 </button>
-                <button id="import-btn" class="toolbar-btn" title="导入数据">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17,8 12,3 7,8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                <button id="import-btn" class="toolbar-btn import-btn" title="导入数据">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M16 12l-4 4-4-4"/>
+                        <path d="M12 8v8"/>
+                        <path d="M16 4h4"/>
+                        <path d="M4 4h4"/>
                     </svg>
                 </button>
                 <input type="file" id="import-file" accept=".json" style="display: none;">
@@ -56,6 +60,24 @@
                 于方寸之间，见天地之宽。个性化网站导航，快速访问常用网站。
                 <span class="intro-tutorial">点击"+"添加网站，悬停卡片可编辑或删除。</span>
             </p>
+        </div>
+
+        <!-- 示例数据提示 -->
+        <div id="example-notice" class="example-notice" style="display: none;">
+            <div class="notice-content">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 16v-4"/>
+                    <path d="M12 8h.01"/>
+                </svg>
+                <span>当前显示的是示例数据，您可以编辑或删除它们，然后添加自己的网站</span>
+                <button id="dismiss-notice" class="dismiss-btn" title="关闭提示">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <!-- 顶部时钟区域 -->
@@ -243,9 +265,11 @@
                 <div class="import-info">
                     <div class="import-icon">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" stroke-width="1.5">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17,8 12,3 7,8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M16 12l-4 4-4-4"/>
+                            <path d="M12 8v8"/>
+                            <path d="M16 4h4"/>
+                            <path d="M4 4h4"/>
                         </svg>
                     </div>
                     <h4 id="import-title">准备导入数据</h4>
@@ -253,7 +277,7 @@
                         <div class="summary-item">
                             <span class="summary-label">总计:</span>
                             <span id="import-count" class="summary-value">0</span>
-                            <span class="summary-unit">个网站</span>
+                            <span class="summary-unit">个项目</span>
                         </div>
                         <div class="summary-item">
                             <span class="summary-label">新增:</span>

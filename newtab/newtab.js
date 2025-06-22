@@ -21,6 +21,7 @@ class SquareInch {
             this.startClock();
             this.renderTags();
             this.renderSites();
+            this.checkAndShowExampleNotice();
         } catch (error) {
             console.error('初始化失败:', error);
         } finally {
@@ -79,6 +80,9 @@ class SquareInch {
 
         // 绑定网格事件（只绑定一次）
         this.bindGridEvents();
+
+        // 示例数据提示事件
+        this.initExampleNotice();
     }
 
     // 启动时钟
@@ -113,38 +117,50 @@ class SquareInch {
     async loadSites() {
         try {
             const stored = localStorage.getItem('square-inch-sites');
-            this.sites = stored ? JSON.parse(stored) : this.getDefaultSites();
+            this.sites = stored ? JSON.parse(stored) : this.getExampleSites();
 
-            // 如果是第一次使用，保存默认网站
+            // 如果是第一次使用，保存示例网站
             if (!stored) {
                 await this.saveSites();
             }
         } catch (error) {
             console.error('加载网站失败:', error);
-            this.sites = this.getDefaultSites();
+            this.sites = this.getExampleSites();
         }
     }
 
-    // 获取默认网站
-    getDefaultSites() {
+
+
+    // 获取示例网站
+    getExampleSites() {
         return [
             {
                 id: this.generateId(),
-                name: 'Google',
-                url: 'https://www.google.com',
-                icon: 'https://www.google.com/favicon.ico'
+                name: '示例一',
+                url: 'https://example1.com',
+                icon: '',
+                tags: ['example-work'] // 对应工作标签
             },
             {
                 id: this.generateId(),
-                name: 'GitHub',
-                url: 'https://github.com',
-                icon: 'https://github.com/favicon.ico'
+                name: '示例二',
+                url: 'https://example2.com',
+                icon: '',
+                tags: ['example-study'] // 对应学习标签
             },
             {
                 id: this.generateId(),
-                name: '百度',
-                url: 'https://www.baidu.com',
-                icon: 'https://www.baidu.com/favicon.ico'
+                name: '示例三',
+                url: 'https://example3.com',
+                icon: '',
+                tags: ['example-life'] // 对应生活标签
+            },
+            {
+                id: this.generateId(),
+                name: '示例四',
+                url: 'https://example4.com',
+                icon: '',
+                tags: ['example-work', 'example-study'] // 多个标签
             }
         ];
     }
@@ -643,11 +659,37 @@ class SquareInch {
     async loadTags() {
         try {
             const stored = localStorage.getItem('square-inch-tags');
-            this.tags = stored ? JSON.parse(stored) : [];
+            this.tags = stored ? JSON.parse(stored) : this.getExampleTags();
+
+            // 如果是第一次使用，保存示例标签
+            if (!stored) {
+                await this.saveTags();
+            }
         } catch (error) {
             console.error('加载标签失败:', error);
-            this.tags = [];
+            this.tags = this.getExampleTags();
         }
+    }
+
+    // 获取示例标签
+    getExampleTags() {
+        return [
+            {
+                id: 'example-work',
+                name: '工作',
+                createdAt: new Date().toISOString()
+            },
+            {
+                id: 'example-study',
+                name: '学习',
+                createdAt: new Date().toISOString()
+            },
+            {
+                id: 'example-life',
+                name: '生活',
+                createdAt: new Date().toISOString()
+            }
+        ];
     }
 
     // 保存标签
@@ -1007,9 +1049,10 @@ class SquareInch {
     exportData() {
         try {
             const exportData = {
-                version: "1.0",
+                version: "2.0",
                 timestamp: new Date().toISOString(),
                 sites: this.sites,
+                tags: this.tags,
                 theme: this.getCurrentTheme()
             };
 
@@ -1067,6 +1110,14 @@ class SquareInch {
             if (!site.id || !site.url || !site.name) return false;
         }
 
+        // 验证标签数据（可选）
+        if (data.tags && !Array.isArray(data.tags)) return false;
+        if (data.tags) {
+            for (const tag of data.tags) {
+                if (!tag.id || !tag.name) return false;
+            }
+        }
+
         return true;
     }
 
@@ -1075,12 +1126,16 @@ class SquareInch {
         this.importData = data;
 
         // 分析导入数据
-        const analysis = this.analyzeImportData(data.sites);
+        const analysis = this.analyzeImportData(data);
 
         // 更新模态框内容
-        document.getElementById('import-count').textContent = data.sites.length;
-        document.getElementById('new-count').textContent = analysis.newSites.length;
-        document.getElementById('update-count').textContent = analysis.updateSites.length;
+        const totalItems = data.sites.length + (data.tags ? data.tags.length : 0);
+        const totalNew = analysis.newSites.length + analysis.newTags.length;
+        const totalUpdate = analysis.updateSites.length + analysis.updateTags.length;
+
+        document.getElementById('import-count').textContent = totalItems;
+        document.getElementById('new-count').textContent = totalNew;
+        document.getElementById('update-count').textContent = totalUpdate;
 
         // 生成预览列表
         const preview = document.getElementById('import-preview');
@@ -1091,25 +1146,78 @@ class SquareInch {
     }
 
     // 分析导入数据
-    analyzeImportData(importSites) {
-        const existingNames = new Set(this.sites.map(site => site.name.toLowerCase()));
+    analyzeImportData(data) {
+        // 分析网站数据
+        const existingSiteNames = new Set(this.sites.map(site => site.name.toLowerCase()));
         const newSites = [];
         const updateSites = [];
 
-        importSites.forEach(site => {
-            if (existingNames.has(site.name.toLowerCase())) {
+        data.sites.forEach(site => {
+            if (existingSiteNames.has(site.name.toLowerCase())) {
                 updateSites.push(site);
             } else {
                 newSites.push(site);
             }
         });
 
-        return { newSites, updateSites };
+        // 分析标签数据
+        const newTags = [];
+        const updateTags = [];
+
+        if (data.tags && data.tags.length > 0) {
+            const existingTagNames = new Set(this.tags.map(tag => tag.name.toLowerCase()));
+
+            data.tags.forEach(tag => {
+                if (existingTagNames.has(tag.name.toLowerCase())) {
+                    updateTags.push(tag);
+                } else {
+                    newTags.push(tag);
+                }
+            });
+        }
+
+        return { newSites, updateSites, newTags, updateTags };
     }
 
     // 生成导入预览HTML
     generateImportPreview(analysis) {
         let html = '';
+
+        // 新增标签
+        if (analysis.newTags.length > 0) {
+            html += `<div class="import-section">
+                <div class="import-section-title">
+                    <span class="import-badge new">新增</span>
+                    <span>${analysis.newTags.length} 个标签</span>
+                </div>`;
+
+            analysis.newTags.slice(0, 5).forEach(tag => {
+                html += this.generateTagPreviewItem(tag, 'new');
+            });
+
+            if (analysis.newTags.length > 5) {
+                html += `<div class="import-more">还有 ${analysis.newTags.length - 5} 个新增标签...</div>`;
+            }
+            html += `</div>`;
+        }
+
+        // 覆盖标签
+        if (analysis.updateTags.length > 0) {
+            html += `<div class="import-section">
+                <div class="import-section-title">
+                    <span class="import-badge update">覆盖</span>
+                    <span>${analysis.updateTags.length} 个标签</span>
+                </div>`;
+
+            analysis.updateTags.slice(0, 5).forEach(tag => {
+                html += this.generateTagPreviewItem(tag, 'update');
+            });
+
+            if (analysis.updateTags.length > 5) {
+                html += `<div class="import-more">还有 ${analysis.updateTags.length - 5} 个覆盖标签...</div>`;
+            }
+            html += `</div>`;
+        }
 
         // 新增网站
         if (analysis.newSites.length > 0) {
@@ -1150,6 +1258,30 @@ class SquareInch {
         return html;
     }
 
+    // 生成单个标签预览项
+    generateTagPreviewItem(tag, type) {
+        return `
+            <div class="import-preview-item tag-preview" data-type="${type}">
+                <div class="import-preview-icon tag-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                        <line x1="7" y1="7" x2="7.01" y2="7"/>
+                    </svg>
+                </div>
+                <div class="import-preview-info">
+                    <div class="import-preview-name">${this.escapeHtml(tag.name)}</div>
+                    <div class="import-preview-url">标签</div>
+                </div>
+                <div class="import-preview-action">
+                    <label class="import-checkbox">
+                        <input type="checkbox" checked data-tag-name="${this.escapeHtml(tag.name)}">
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+            </div>
+        `;
+    }
+
     // 生成单个网站预览项
     generateSitePreviewItem(site, type) {
         return `
@@ -1179,19 +1311,22 @@ class SquareInch {
                 return;
             }
 
-            // 获取用户选择的网站
+            // 获取用户选择的数据
             const selectedSites = this.getSelectedImportSites();
+            const selectedTags = this.getSelectedImportTags();
 
-            if (selectedSites.length === 0) {
-                this.showToast('请至少选择一个网站进行导入', 'info');
+            if (selectedSites.length === 0 && selectedTags.length === 0) {
+                this.showToast('请至少选择一个项目进行导入', 'info');
                 return;
             }
 
             // 执行导入
-            const result = this.executeImport(selectedSites);
+            const siteResult = this.executeImport(selectedSites);
+            const tagResult = this.executeTagImport(selectedTags);
 
             // 保存到存储
             await this.saveSites();
+            await this.saveTags();
 
             // 如果有主题设置，也导入主题
             if (this.importData.theme) {
@@ -1200,12 +1335,17 @@ class SquareInch {
 
             // 重新渲染
             this.renderSites();
+            this.renderTags();
 
             // 关闭模态框
             this.closeImportModal();
 
             // 显示成功提示
-            this.showToast(`成功导入 ${result.imported} 个网站！新增 ${result.added} 个，覆盖 ${result.updated} 个`, 'success');
+            const totalImported = siteResult.imported + tagResult.imported;
+            const totalAdded = siteResult.added + tagResult.added;
+            const totalUpdated = siteResult.updated + tagResult.updated;
+
+            this.showToast(`成功导入 ${totalImported} 个项目！新增 ${totalAdded} 个，覆盖 ${totalUpdated} 个`, 'success');
 
             this.importData = null;
         } catch (error) {
@@ -1216,11 +1356,23 @@ class SquareInch {
 
     // 获取用户选择的导入网站
     getSelectedImportSites() {
-        const checkboxes = document.querySelectorAll('#import-preview input[type="checkbox"]:checked');
+        const checkboxes = document.querySelectorAll('#import-preview input[type="checkbox"]:checked[data-site-name]');
         const selectedNames = Array.from(checkboxes).map(cb => cb.dataset.siteName);
 
         return this.importData.sites.filter(site =>
             selectedNames.includes(site.name)
+        );
+    }
+
+    // 获取用户选择的导入标签
+    getSelectedImportTags() {
+        if (!this.importData.tags) return [];
+
+        const checkboxes = document.querySelectorAll('#import-preview input[type="checkbox"]:checked[data-tag-name]');
+        const selectedNames = Array.from(checkboxes).map(cb => cb.dataset.tagName);
+
+        return this.importData.tags.filter(tag =>
+            selectedNames.includes(tag.name)
         );
     }
 
@@ -1256,6 +1408,47 @@ class SquareInch {
 
         return {
             imported: selectedSites.length,
+            added,
+            updated
+        };
+    }
+
+    // 执行标签导入操作
+    executeTagImport(selectedTags) {
+        if (!selectedTags || selectedTags.length === 0) {
+            return { imported: 0, added: 0, updated: 0 };
+        }
+
+        const existingNamesMap = new Map();
+        this.tags.forEach((tag, index) => {
+            existingNamesMap.set(tag.name.toLowerCase(), index);
+        });
+
+        let added = 0;
+        let updated = 0;
+
+        selectedTags.forEach(importTag => {
+            const existingIndex = existingNamesMap.get(importTag.name.toLowerCase());
+
+            if (existingIndex !== undefined) {
+                // 覆盖现有标签
+                this.tags[existingIndex] = {
+                    ...importTag,
+                    id: this.tags[existingIndex].id // 保持原有ID
+                };
+                updated++;
+            } else {
+                // 新增标签
+                this.tags.push({
+                    ...importTag,
+                    id: this.generateId() // 生成新ID
+                });
+                added++;
+            }
+        });
+
+        return {
+            imported: selectedTags.length,
             added,
             updated
         };
@@ -1316,6 +1509,35 @@ class SquareInch {
                 }
             }, 300);
         }, 3000);
+    }
+
+    // 检查并显示示例数据提示
+    checkAndShowExampleNotice() {
+        const isFirstTime = !localStorage.getItem('square-inch-sites');
+        const noticeShown = localStorage.getItem('square-inch-notice-dismissed');
+
+        if (isFirstTime && !noticeShown) {
+            document.getElementById('example-notice').style.display = 'block';
+        }
+    }
+
+    // 初始化示例数据提示事件
+    initExampleNotice() {
+        document.getElementById('dismiss-notice').addEventListener('click', () => {
+            this.dismissExampleNotice();
+        });
+    }
+
+    // 关闭示例数据提示
+    dismissExampleNotice() {
+        document.getElementById('example-notice').style.display = 'none';
+        localStorage.setItem('square-inch-notice-dismissed', 'true');
+    }
+
+    // 检查是否为示例数据
+    isExampleData() {
+        return this.sites.some(site => site.url.includes('example')) ||
+               this.tags.some(tag => tag.id.startsWith('example-'));
     }
 }
 

@@ -296,6 +296,29 @@ body {
     transform: scale(1.05);
 }
 
+/* 导入导出按钮特殊样式 */
+.export-btn {
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.export-btn:hover {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: #10b981;
+    color: #059669;
+}
+
+.import-btn {
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.import-btn:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+    color: #2563eb;
+}
+
 /* 主题切换按钮特殊样式 */
 .theme-toggle {
     overflow: hidden;
@@ -351,6 +374,62 @@ body {
 .intro-tutorial {
     color: var(--text-light);
     font-size: 0.8rem;
+}
+
+/* 示例数据提示 */
+.example-notice {
+    margin: 1rem auto;
+    max-width: 800px;
+    animation: slideDown 0.3s ease-out;
+}
+
+.notice-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.notice-content svg {
+    color: #3b82f6;
+    flex-shrink: 0;
+}
+
+.notice-content span {
+    flex: 1;
+}
+
+.dismiss-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: var(--transition);
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.dismiss-btn:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--text-primary);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* 时钟区域 */
@@ -890,11 +969,13 @@ body {
     height: 100%;
     background: rgba(0, 0, 0, 0.4);
     z-index: 1000;
+    padding: 5vh 0; /* 增加顶部和底部间距 */
+    box-sizing: border-box;
 }
 
 .modal.show {
     display: flex;
-    align-items: center;
+    align-items: flex-start; /* 改为顶部对齐，配合padding */
     justify-content: center;
 }
 
@@ -1223,12 +1304,14 @@ body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    margin: 0 auto; /* 水平居中 */
 }
 
 .import-modal-body {
     padding: 2rem;
     overflow-y: auto;
     flex: 1;
+    text-align: center; /* 内容居中 */
 }
 
 .import-info {
@@ -1293,7 +1376,8 @@ body {
     max-height: 300px;
     overflow-y: auto;
     text-align: left;
-    margin-bottom: 1rem;
+    margin: 0 auto 1rem auto; /* 整体居中 */
+    max-width: 500px; /* 限制最大宽度 */
 }
 
 .import-section {
@@ -1352,6 +1436,17 @@ body {
 
 .import-preview-item[data-type="update"] {
     border-left: 3px solid #f59e0b;
+}
+
+/* 标签预览项特殊样式 */
+.tag-preview .import-preview-icon {
+    background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+    color: white;
+    border-radius: 6px;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .import-preview-icon {
@@ -1453,7 +1548,8 @@ body {
     display: flex;
     justify-content: center;
     gap: 1rem;
-    margin-bottom: 1rem;
+    margin: 1rem auto; /* 上下边距并居中 */
+    max-width: 500px; /* 与预览区域保持一致 */
 }
 
 .btn-link {
@@ -1472,11 +1568,13 @@ body {
 }
 
 .import-warning {
-    margin-top: 1rem;
+    margin: 1rem auto 0 auto; /* 居中显示 */
     padding: 1rem;
     background: rgba(245, 158, 11, 0.1);
     border: 1px solid rgba(245, 158, 11, 0.2);
     border-radius: 8px;
+    max-width: 500px; /* 与其他元素保持一致 */
+    text-align: left; /* 文字左对齐 */
 }
 
 .import-warning p {

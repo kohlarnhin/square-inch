@@ -969,9 +969,18 @@ body {
     border-radius: 12px;
     max-width: 480px;
     width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
+    overflow: visible;
     box-shadow: 0 20px 40px var(--shadow-heavy);
+}
+
+/* 添加网站弹窗需要更高以容纳标签选择器 */
+.modal-content.bookmark-modal {
+    min-height: 800px;
+}
+
+/* 添加标签弹窗保持正常高度 */
+.modal-content.tag-modal {
+    min-height: auto;
 }
 
 .modal-header {
@@ -1108,9 +1117,14 @@ body {
     border-bottom-right-radius: 6px;
     box-shadow: 0 4px 12px var(--shadow-medium);
     z-index: 1000;
-    max-height: 180px;
-    overflow-y: auto;
     display: none;
+    overflow: hidden;
+}
+
+.tags-scroll-area {
+    height: 216px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .custom-select.open .select-options {
@@ -1134,7 +1148,6 @@ body {
 
 .select-option:hover {
     background: var(--card-hover);
-    transform: translateX(2px);
 }
 
 .select-option.selected {
@@ -1163,6 +1176,34 @@ body {
 
 .select-option.selected .option-check {
     opacity: 1;
+}
+
+/* 标签选择器的新增标签按钮 */
+.select-option.add-new-tag {
+    justify-content: center;
+    color: var(--text-secondary);
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.select-option.add-new-tag:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.select-option.add-new-tag {
+    border-top: 1px solid var(--border-light);
+    margin-top: 8px;
+    padding-top: 12px;
+}
+
+.select-option.add-new-tag svg {
+    margin-right: 6px;
+    transition: var(--transition);
+}
+
+.select-option.add-new-tag:hover svg {
+    transform: rotate(90deg);
 }
 
 /* 选中标签显示 */
@@ -1298,6 +1339,143 @@ body {
     margin-top: 2rem;
 }
 
+/* 删除确认模式样式 */
+.nav-card.delete-confirm-mode {
+    overflow: hidden;
+    position: relative;
+}
+
+.tag-item.delete-confirm-mode {
+    overflow: hidden;
+    min-height: auto;
+}
+
+.delete-confirm-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+}
+
+.nav-card .delete-confirm-content {
+    animation: slideInFromTop 0.3s ease-out;
+}
+
+.tag-item .delete-confirm-content {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.nav-card .delete-confirm-content {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0;
+    position: absolute;
+    inset: 0;
+    padding: 1.25rem;
+}
+
+.tag-item .delete-confirm-content {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0;
+    height: auto;
+}
+
+.delete-confirm-content .confirm-text {
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.tag-item .delete-confirm-content .confirm-text {
+    font-size: 0.75rem;
+    flex: 1;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.confirm-actions .confirm-btn,
+.confirm-actions .cancel-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--transition);
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.confirm-actions .confirm-btn svg,
+.confirm-actions .cancel-btn svg {
+    display: block;
+}
+
+.tag-item .confirm-actions .confirm-btn,
+.tag-item .confirm-actions .cancel-btn {
+    padding: 0.125rem 0.375rem;
+    font-size: 0.75rem;
+}
+
+.confirm-actions .confirm-btn {
+    background: #dc3545;
+    color: white;
+}
+
+.confirm-actions .confirm-btn:hover {
+    background: #c82333;
+    transform: scale(1.05);
+}
+
+.confirm-actions .cancel-btn {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+}
+
+.confirm-actions .cancel-btn:hover {
+    background: var(--card-hover);
+    border-color: var(--border-hover);
+    transform: scale(1.05);
+}
+
 /* 导入模态框样式 */
 .import-modal-content {
     max-width: 600px;
@@ -1311,9 +1489,10 @@ body {
 
 .import-modal-body {
     padding: 2rem;
-    overflow-y: auto;
+    overflow-y: auto; /* 恢复滚动条，但优化内部结构避免重复滚动条 */
     flex: 1;
     text-align: center; /* 内容居中 */
+    min-height: 0; /* 允许缩小到底部按钮可见 */
 }
 
 .import-info {
@@ -1376,11 +1555,10 @@ body {
 
 /* 导入预览 */
 .import-preview {
-    max-height: 300px;
-    overflow-y: auto;
     text-align: left;
     margin: 0 auto 1rem auto; /* 整体居中 */
     max-width: 500px; /* 限制最大宽度 */
+    /* 移除max-height和overflow-y，避免重复滚动条 */
 }
 
 .import-section {

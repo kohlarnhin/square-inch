@@ -6,6 +6,7 @@ class SquareInch {
         this.currentEditingId = null;
         this.currentTagDeleteId = null;
         this.currentTag = 'all'; // 当前选中的标签
+        this.activeDeleteRestore = null; // 当前激活的删除恢复函数
 
         this.init();
     }
@@ -22,10 +23,38 @@ class SquareInch {
             this.renderTags();
             this.renderSites();
             this.checkAndShowExampleNotice();
+            
+            // 检查是否需要添加新网站（来自右键菜单）
+            this.checkUrlParams();
         } catch (error) {
             console.error('初始化失败:', error);
         } finally {
             this.hideLoading();
+        }
+    }
+
+    // 检查URL参数，处理右键菜单添加网站
+    checkUrlParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const action = urlParams.get('action');
+        
+        if (action === 'add') {
+            const domain = urlParams.get('domain');
+            
+            if (domain) {
+                // 打开添加网站模态框并填充域名
+                this.openModal();
+                
+                // 填充表单，只填充网址字段
+                setTimeout(() => {
+                    document.getElementById('bookmark-url').value = domain;
+                    document.getElementById('bookmark-name').focus();
+                }, 100);
+                
+                // 清除URL参数
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
+            }
         }
     }
 
@@ -234,6 +263,14 @@ class SquareInch {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
 
+    // 恢复所有删除确认状态
+    restoreAllDeleteConfirms() {
+        if (this.activeDeleteRestore) {
+            this.activeDeleteRestore();
+            this.activeDeleteRestore = null;
+        }
+    }
+
     // 获取默认图标
 
 
@@ -294,8 +331,12 @@ class SquareInch {
     // 打开模态框
     openModal(site = null) {
         const modal = document.getElementById('bookmark-modal');
+        const modalContent = modal.querySelector('.modal-content');
         const form = document.getElementById('bookmark-form');
         const title = document.getElementById('modal-title');
+        
+        // 为添加网站弹窗添加CSS类
+        modalContent.classList.add('bookmark-modal');
 
         // 更新标签选择器
         this.updateTagsSelect();
@@ -309,17 +350,17 @@ class SquareInch {
 
             // 使用 setTimeout 确保 DOM 更新完成后再设置选中状态
             setTimeout(() => {
-                const tagsSelector = document.getElementById('bookmark-tags');
-                const tagOptions = tagsSelector.querySelectorAll('.select-option');
-                tagOptions.forEach(option => {
-                    const tagId = option.dataset.tagId;
-                    if (site.tags && site.tags.includes(tagId)) {
-                        option.classList.add('selected');
-                    } else {
-                        option.classList.remove('selected');
-                    }
-                });
-                this.updateSelectDisplay(tagsSelector);
+            const tagsSelector = document.getElementById('bookmark-tags');
+            const tagOptions = tagsSelector.querySelectorAll('.select-option');
+            tagOptions.forEach(option => {
+                const tagId = option.dataset.tagId;
+                if (site.tags && site.tags.includes(tagId)) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+            this.updateSelectDisplay(tagsSelector);
             }, 0);
 
             this.currentEditingId = site.id;
@@ -432,19 +473,89 @@ class SquareInch {
     }
 
     // 删除网站
-    deleteSite(id) {
-        this.currentEditingId = id;
-        const modal = document.getElementById('delete-modal');
-        modal.classList.add('show');
+    deleteSite(id, deleteBtn) {
+        // 恢复所有其他的删除确认状态
+        this.restoreAllDeleteConfirms();
+        
+        const card = deleteBtn.closest('.nav-card');
+        const site = this.sites.find(s => s.id === id);
+        if (!site) return;
+        
+        // 保存原内容
+        const originalContent = card.innerHTML;
+        
+        // 创建确认删除的内容，添加动画过渡
+        const confirmContent = `
+            <div class="delete-confirm-content">
+                <span class="confirm-text">删除此网站?</span>
+                <div class="confirm-actions">
+                    <button class="confirm-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="20,6 9,17 4,12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="cancel-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // 添加动画类并设置内容
+        card.style.transition = 'none';
+        card.classList.add('delete-confirm-mode');
+        card.innerHTML = confirmContent;
+        
+        // 强制重绘后启用过渡
+        card.offsetHeight; // 触发重绘
+        card.style.transition = '';
+        
+        // 绑定事件
+        const confirmBtn = card.querySelector('.confirm-btn');
+        const cancelBtn = card.querySelector('.cancel-btn');
+        
+        const restore = () => {
+            card.classList.remove('delete-confirm-mode');
+            card.innerHTML = originalContent;
+            this.activeDeleteRestore = null; // 清除激活状态
+        };
+        
+        // 设置当前激活的恢复函数
+        this.activeDeleteRestore = restore;
+        
+        confirmBtn.addEventListener('click', async () => {
+            await this.confirmDeleteSite(id);
+        });
+        
+        cancelBtn.addEventListener('click', restore);
+        
+        // 点击其他地方恢复
+        setTimeout(() => {
+            document.addEventListener('click', function closeConfirm(e) {
+                if (!card.contains(e.target)) {
+                    restore();
+                    document.removeEventListener('click', closeConfirm);
+                }
+            });
+        }, 0);
     }
 
-    // 确认删除
+    // 确认删除网站
+    async confirmDeleteSite(id) {
+        this.sites = this.sites.filter(s => s.id !== id);
+        await this.saveSites();
+        this.renderSites();
+        this.renderTags(); // 刷新左侧标签列表以更新网站数量
+        this.activeDeleteRestore = null; // 清除激活状态
+    }
+
+    // 确认删除（兼容旧的删除模态框）
     async confirmDelete() {
         if (this.currentEditingId) {
-            this.sites = this.sites.filter(s => s.id !== this.currentEditingId);
-            await this.saveSites();
-            this.renderSites();
-            this.renderTags(); // 刷新左侧标签列表以更新网站数量
+            await this.confirmDeleteSite(this.currentEditingId);
             this.closeDeleteModal();
         }
     }
@@ -603,7 +714,7 @@ class SquareInch {
                 if (action === 'edit') {
                     this.editSite(id);
                 } else if (action === 'delete') {
-                    this.deleteSite(id);
+                    this.deleteSite(id, actionBtn);
                 }
                 return;
             }
@@ -775,8 +886,9 @@ class SquareInch {
             // 处理删除标签按钮
             if (e.target.closest('.tag-delete')) {
                 e.stopPropagation();
-                const tagId = e.target.closest('.tag-delete').dataset.tagId;
-                this.deleteTag(tagId);
+                const deleteBtn = e.target.closest('.tag-delete');
+                const tagId = deleteBtn.dataset.tagId;
+                this.deleteTag(tagId, deleteBtn);
                 return;
             }
 
@@ -825,6 +937,11 @@ class SquareInch {
     openTagModal() {
         document.getElementById('tag-name').value = '';
         const modal = document.getElementById('tag-modal');
+        const modalContent = modal.querySelector('.modal-content');
+        
+        // 为添加标签弹窗添加CSS类
+        modalContent.classList.add('tag-modal');
+        
         modal.classList.add('show');
         document.getElementById('tag-name').focus();
     }
@@ -870,7 +987,10 @@ class SquareInch {
     }
 
     // 删除标签
-    deleteTag(tagId) {
+    deleteTag(tagId, deleteBtn) {
+        // 恢复所有其他的删除确认状态
+        this.restoreAllDeleteConfirms();
+        
         const tag = this.tags.find(t => t.id === tagId);
         if (!tag) return;
 
@@ -885,21 +1005,97 @@ class SquareInch {
             return;
         }
 
-        this.currentTagDeleteId = tagId;
-
-        // 更新删除确认模态框内容
-        document.getElementById('tag-delete-name').textContent = tag.name;
-
-        document.getElementById('tag-delete-modal').classList.add('show');
+        const tagItem = deleteBtn.closest('.tag-item');
+        
+        // 保存原内容
+        const originalContent = tagItem.innerHTML;
+        
+        // 创建确认删除的内容
+        const confirmContent = `
+            <div class="delete-confirm-content">
+                <span class="confirm-text">删除?</span>
+                <div class="confirm-actions">
+                    <button class="confirm-btn">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="20,6 9,17 4,12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="cancel-btn">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // 添加动画类并设置内容
+        tagItem.style.transition = 'none';
+        tagItem.classList.add('delete-confirm-mode');
+        tagItem.innerHTML = confirmContent;
+        
+        // 强制重绘后启用过渡
+        tagItem.offsetHeight; // 触发重绘
+        tagItem.style.transition = '';
+        
+        // 绑定事件
+        const confirmBtn = tagItem.querySelector('.confirm-btn');
+        const cancelBtn = tagItem.querySelector('.cancel-btn');
+        
+        const restore = () => {
+            tagItem.classList.remove('delete-confirm-mode');
+            tagItem.innerHTML = originalContent;
+            this.activeDeleteRestore = null; // 清除激活状态
+        };
+        
+        // 设置当前激活的恢复函数
+        this.activeDeleteRestore = restore;
+        
+        confirmBtn.addEventListener('click', async () => {
+            await this.confirmDeleteTag(tagId);
+        });
+        
+        cancelBtn.addEventListener('click', restore);
+        
+        // 点击其他地方恢复
+        setTimeout(() => {
+            document.addEventListener('click', function closeConfirm(e) {
+                if (!tagItem.contains(e.target)) {
+                    restore();
+                    document.removeEventListener('click', closeConfirm);
+                }
+            });
+        }, 0);
     }
 
-    // 关闭标签删除模态框
+    // 确认删除标签
+    async confirmDeleteTag(tagId) {
+        // 删除标签
+        this.tags = this.tags.filter(tag => tag.id !== tagId);
+        await this.saveTags();
+
+        // 如果当前选中的是被删除的标签，切换到"全部"
+        if (this.currentTag === tagId) {
+            this.currentTag = 'all';
+        }
+
+        // 重新渲染
+        this.renderTags();
+        this.renderSites();
+        this.updateTagsSelect();
+        this.activeDeleteRestore = null; // 清除激活状态
+
+        this.showToast('标签删除成功', 'success');
+    }
+
+    // 关闭标签删除模态框（兼容旧代码）
     closeTagDeleteModal() {
         document.getElementById('tag-delete-modal').classList.remove('show');
         this.currentTagDeleteId = null;
     }
 
-    // 确认删除标签
+    // 确认删除标签（兼容旧的删除模态框）
     async confirmTagDelete() {
         if (!this.currentTagDeleteId) return;
 
@@ -910,31 +1106,30 @@ class SquareInch {
 
         if (sitesWithTag.length > 0) {
             this.showToast('删除失败：该标签下还有关联网站', 'error');
-            this.closeTagDeleteModal();
+        this.closeTagDeleteModal();
             return;
         }
 
-        // 删除标签
-        this.tags = this.tags.filter(tag => tag.id !== this.currentTagDeleteId);
-
-        await this.saveTags();
-
-        // 如果当前选中的是被删除的标签，切换到"全部"
-        if (this.currentTag === this.currentTagDeleteId) {
-            this.currentTag = 'all';
-        }
-
-        this.renderTags();
-        this.renderSites();
-        this.updateTagsSelect();
+        await this.confirmDeleteTag(this.currentTagDeleteId);
         this.closeTagDeleteModal();
-
-        this.showToast('标签删除成功！', 'success');
     }
 
     // 生成唯一ID
     generateId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    // 重置标签选择器分页状态
+    resetTagsSelectPagination() {
+        const selector = document.getElementById('bookmark-tags');
+        if (selector) {
+            // 重置分页数据
+            selector.tagsPagination = {
+                currentPage: 0,
+                pageSize: 5,
+                totalTags: this.tags.length
+            };
+        }
     }
 
     // 更新标签选择器
@@ -943,11 +1138,52 @@ class SquareInch {
         const optionsContainer = selector.querySelector('.select-options');
 
         if (this.tags.length === 0) {
-            optionsContainer.innerHTML = '<div class="select-option disabled">暂无可选标签</div>';
+            optionsContainer.innerHTML = `
+                <div class="select-option disabled">暂无可选标签</div>
+                <div class="select-option add-new-tag">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span>新增标签</span>
+                </div>`;
+            this.bindAddTagEvent(selector);
             return;
         }
 
-        optionsContainer.innerHTML = this.tags.map(tag =>
+        // 分页数据
+        selector.tagsPagination = {
+            currentPage: 0,
+            pageSize: 5,
+            totalTags: this.tags.length,
+            loadedTags: []
+        };
+
+        // 渲染初始5个标签
+        this.renderTagsList(selector);
+
+        // 只在未初始化时初始化下拉列表功能
+        if (!selector.dataset.initialized) {
+            this.initCustomSelect(selector);
+            selector.dataset.initialized = 'true';
+        }
+    }
+
+    // 渲染标签列表
+    renderTagsList(selector) {
+        const optionsContainer = selector.querySelector('.select-options');
+        const pagination = selector.tagsPagination;
+        const startIndex = pagination.currentPage * pagination.pageSize;
+        const endIndex = Math.min(startIndex + pagination.pageSize, this.tags.length);
+        
+        // 获取新的标签
+        const newTags = this.tags.slice(startIndex, endIndex);
+        pagination.loadedTags.push(...newTags);
+        pagination.currentPage++;
+        pagination.hasMore = endIndex < this.tags.length;
+
+        // 生成所有已加载标签的HTML
+        const tagsHTML = pagination.loadedTags.map(tag =>
             `<div class="select-option" data-tag-id="${tag.id}">
                 <span class="option-label">${this.escapeHtml(tag.name)}</span>
                 <svg class="option-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -956,12 +1192,83 @@ class SquareInch {
             </div>`
         ).join('');
 
-        // 只在未初始化时初始化下拉列表功能
-        if (!selector.dataset.initialized) {
-            this.initCustomSelect(selector);
-            selector.dataset.initialized = 'true';
+        // 固定在底部的新增标签按钮
+        const addTagHTML = `
+            <div class="select-option add-new-tag">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>新增标签</span>
+            </div>`;
+
+        // 构建完整的HTML结构
+        optionsContainer.innerHTML = `
+            <div class="tags-scroll-area">${tagsHTML}</div>
+            ${addTagHTML}
+        `;
+
+        this.bindAddTagEvent(selector);
+        this.bindScrollEvent(selector);
+    }
+
+    // 绑定新增标签事件
+    bindAddTagEvent(selector) {
+        const addTagBtn = selector.querySelector('.add-new-tag');
+        if (addTagBtn && !addTagBtn.dataset.bound) {
+            addTagBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selector.classList.remove('open');
+                this.openTagModal();
+            });
+            addTagBtn.dataset.bound = 'true';
         }
     }
+
+    // 绑定滚动事件
+    bindScrollEvent(selector) {
+        const scrollArea = selector.querySelector('.tags-scroll-area');
+        if (scrollArea && !scrollArea.dataset.scrollBound) {
+            scrollArea.addEventListener('scroll', () => {
+                const pagination = selector.tagsPagination;
+                if (pagination && pagination.hasMore) {
+                    if (scrollArea.scrollTop + scrollArea.clientHeight >= scrollArea.scrollHeight - 10) {
+                        this.loadMoreTags(selector);
+                    }
+                }
+            });
+            scrollArea.dataset.scrollBound = 'true';
+        }
+    }
+
+    // 加载更多标签
+    loadMoreTags(selector) {
+        const pagination = selector.tagsPagination;
+        const startIndex = pagination.currentPage * pagination.pageSize;
+        const endIndex = Math.min(startIndex + pagination.pageSize, this.tags.length);
+        
+        if (startIndex < this.tags.length) {
+            const newTags = this.tags.slice(startIndex, endIndex);
+            pagination.loadedTags.push(...newTags);
+            pagination.currentPage++;
+            pagination.hasMore = endIndex < this.tags.length;
+
+            // 只更新滚动区域
+            const scrollArea = selector.querySelector('.tags-scroll-area');
+            const newTagsHTML = newTags.map(tag =>
+                `<div class="select-option" data-tag-id="${tag.id}">
+                    <span class="option-label">${this.escapeHtml(tag.name)}</span>
+                    <svg class="option-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20,6 9,17 4,12"></polyline>
+                    </svg>
+                </div>`
+            ).join('');
+            
+            scrollArea.insertAdjacentHTML('beforeend', newTagsHTML);
+        }
+    }
+
+
 
     // 初始化自定义下拉列表
     initCustomSelect(selector) {
@@ -983,16 +1290,15 @@ class SquareInch {
         // 使用事件委托处理选项点击
         optionsContainer.addEventListener('click', (e) => {
             const option = e.target.closest('.select-option');
-            if (option && !option.classList.contains('disabled')) {
+            if (option && !option.classList.contains('disabled') && !option.classList.contains('add-new-tag')) {
                 option.classList.toggle('selected');
                 this.updateSelectDisplay(selector);
-                e.stopPropagation();
             }
         });
 
         // 只绑定一次全局点击事件
         if (!document.body.dataset.customSelectInitialized) {
-            document.addEventListener('click', (e) => {
+        document.addEventListener('click', (e) => {
                 // 关闭所有打开的自定义选择器
                 document.querySelectorAll('.custom-select.open').forEach(select => {
                     if (!select.contains(e.target)) {

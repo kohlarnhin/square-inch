@@ -235,14 +235,7 @@ class SquareInch {
     }
 
     // 获取默认图标
-    getDefaultIcon(url) {
-        try {
-            const domain = new URL(url).hostname;
-            return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-        } catch {
-            return 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="%23666" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>';
-        }
-    }
+
 
     // 获取域名
     getDomain(url) {
@@ -256,11 +249,15 @@ class SquareInch {
     // 获取图标内容（图片或文字）
     getIconContent(site) {
         if (site.icon && site.icon.trim()) {
-            // 有图标URL，显示图片
-            return `<img class="nav-icon" src="${site.icon}" alt="${site.name || '网站'}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            // 有图标URL，显示图片，失败时显示文字
+            return `<img class="nav-icon" 
+                        src="${site.icon}" 
+                        alt="${site.name || '网站'}" 
+                        loading="lazy"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div class="nav-icon nav-icon-text" style="display: none;">${this.getIconText(site)}</div>`;
         } else {
-            // 没有图标，显示文字
+            // 没有图标，直接显示文字
             return `<div class="nav-icon nav-icon-text">${this.getIconText(site)}</div>`;
         }
     }
@@ -310,24 +307,35 @@ class SquareInch {
             document.getElementById('bookmark-url').value = site.url;
             document.getElementById('bookmark-icon').value = site.icon || '';
 
-            // 设置选中的标签
-            const tagsSelector = document.getElementById('bookmark-tags');
-            const tagOptions = tagsSelector.querySelectorAll('.select-option');
-            tagOptions.forEach(option => {
-                const tagId = option.dataset.tagId;
-                if (site.tags && site.tags.includes(tagId)) {
-                    option.classList.add('selected');
-                } else {
-                    option.classList.remove('selected');
-                }
-            });
-            this.updateSelectDisplay(tagsSelector);
+            // 使用 setTimeout 确保 DOM 更新完成后再设置选中状态
+            setTimeout(() => {
+                const tagsSelector = document.getElementById('bookmark-tags');
+                const tagOptions = tagsSelector.querySelectorAll('.select-option');
+                tagOptions.forEach(option => {
+                    const tagId = option.dataset.tagId;
+                    if (site.tags && site.tags.includes(tagId)) {
+                        option.classList.add('selected');
+                    } else {
+                        option.classList.remove('selected');
+                    }
+                });
+                this.updateSelectDisplay(tagsSelector);
+            }, 0);
 
             this.currentEditingId = site.id;
         } else {
             // 添加模式
             title.textContent = '添加网站';
             form.reset();
+            
+            // 清除标签选择状态
+            setTimeout(() => {
+                const tagsSelector = document.getElementById('bookmark-tags');
+                const tagOptions = tagsSelector.querySelectorAll('.select-option');
+                tagOptions.forEach(option => option.classList.remove('selected'));
+                this.updateSelectDisplay(tagsSelector);
+            }, 0);
+            
             this.currentEditingId = null;
         }
 
@@ -405,6 +413,7 @@ class SquareInch {
 
             await this.saveSites();
             this.renderSites();
+            this.renderTags(); // 刷新左侧标签列表以更新网站数量
             this.closeModal();
         } catch (error) {
             console.error('保存网站失败:', error);
@@ -435,6 +444,7 @@ class SquareInch {
             this.sites = this.sites.filter(s => s.id !== this.currentEditingId);
             await this.saveSites();
             this.renderSites();
+            this.renderTags(); // 刷新左侧标签列表以更新网站数量
             this.closeDeleteModal();
         }
     }
@@ -869,17 +879,16 @@ class SquareInch {
             site.tags && site.tags.includes(tagId)
         );
 
+        // 如果有关联网站，不允许删除
+        if (sitesWithTag.length > 0) {
+            this.showToast(`无法删除标签"${tag.name}"，该标签下还有 ${sitesWithTag.length} 个关联网站`, 'error');
+            return;
+        }
+
         this.currentTagDeleteId = tagId;
 
         // 更新删除确认模态框内容
         document.getElementById('tag-delete-name').textContent = tag.name;
-
-        if (sitesWithTag.length > 0) {
-            document.getElementById('tag-sites-count').textContent = sitesWithTag.length;
-            document.getElementById('tag-delete-warning').style.display = 'block';
-        } else {
-            document.getElementById('tag-delete-warning').style.display = 'none';
-        }
 
         document.getElementById('tag-delete-modal').classList.add('show');
     }
@@ -894,18 +903,21 @@ class SquareInch {
     async confirmTagDelete() {
         if (!this.currentTagDeleteId) return;
 
+        // 再次检查是否有关联网站（双重保险）
+        const sitesWithTag = this.sites.filter(site =>
+            site.tags && site.tags.includes(this.currentTagDeleteId)
+        );
+
+        if (sitesWithTag.length > 0) {
+            this.showToast('删除失败：该标签下还有关联网站', 'error');
+            this.closeTagDeleteModal();
+            return;
+        }
+
         // 删除标签
         this.tags = this.tags.filter(tag => tag.id !== this.currentTagDeleteId);
 
-        // 从所有网站中移除这个标签
-        this.sites.forEach(site => {
-            if (site.tags) {
-                site.tags = site.tags.filter(tagId => tagId !== this.currentTagDeleteId);
-            }
-        });
-
         await this.saveTags();
-        await this.saveSites();
 
         // 如果当前选中的是被删除的标签，切换到"全部"
         if (this.currentTag === this.currentTagDeleteId) {
@@ -944,23 +956,31 @@ class SquareInch {
             </div>`
         ).join('');
 
-        // 初始化下拉列表功能
-        this.initCustomSelect(selector);
+        // 只在未初始化时初始化下拉列表功能
+        if (!selector.dataset.initialized) {
+            this.initCustomSelect(selector);
+            selector.dataset.initialized = 'true';
+        }
     }
 
     // 初始化自定义下拉列表
     initCustomSelect(selector) {
         const trigger = selector.querySelector('.select-trigger');
         const optionsContainer = selector.querySelector('.select-options');
-        const placeholder = selector.querySelector('.select-placeholder');
 
         // 点击触发器切换下拉列表
         trigger.addEventListener('click', (e) => {
             e.stopPropagation();
+            // 关闭其他可能打开的选择器
+            document.querySelectorAll('.custom-select.open').forEach(select => {
+                if (select !== selector) {
+                    select.classList.remove('open');
+                }
+            });
             selector.classList.toggle('open');
         });
 
-        // 点击选项
+        // 使用事件委托处理选项点击
         optionsContainer.addEventListener('click', (e) => {
             const option = e.target.closest('.select-option');
             if (option && !option.classList.contains('disabled')) {
@@ -970,12 +990,18 @@ class SquareInch {
             }
         });
 
-        // 点击外部关闭下拉列表
-        document.addEventListener('click', (e) => {
-            if (!selector.contains(e.target)) {
-                selector.classList.remove('open');
-            }
-        });
+        // 只绑定一次全局点击事件
+        if (!document.body.dataset.customSelectInitialized) {
+            document.addEventListener('click', (e) => {
+                // 关闭所有打开的自定义选择器
+                document.querySelectorAll('.custom-select.open').forEach(select => {
+                    if (!select.contains(e.target)) {
+                        select.classList.remove('open');
+                    }
+                });
+            });
+            document.body.dataset.customSelectInitialized = 'true';
+        }
 
         // 初始化显示
         this.updateSelectDisplay(selector);
@@ -1191,13 +1217,9 @@ class SquareInch {
                     <span>${analysis.newTags.length} 个标签</span>
                 </div>`;
 
-            analysis.newTags.slice(0, 5).forEach(tag => {
+            analysis.newTags.forEach(tag => {
                 html += this.generateTagPreviewItem(tag, 'new');
             });
-
-            if (analysis.newTags.length > 5) {
-                html += `<div class="import-more">还有 ${analysis.newTags.length - 5} 个新增标签...</div>`;
-            }
             html += `</div>`;
         }
 
@@ -1209,13 +1231,9 @@ class SquareInch {
                     <span>${analysis.updateTags.length} 个标签</span>
                 </div>`;
 
-            analysis.updateTags.slice(0, 5).forEach(tag => {
+            analysis.updateTags.forEach(tag => {
                 html += this.generateTagPreviewItem(tag, 'update');
             });
-
-            if (analysis.updateTags.length > 5) {
-                html += `<div class="import-more">还有 ${analysis.updateTags.length - 5} 个覆盖标签...</div>`;
-            }
             html += `</div>`;
         }
 
@@ -1227,13 +1245,9 @@ class SquareInch {
                     <span>${analysis.newSites.length} 个网站</span>
                 </div>`;
 
-            analysis.newSites.slice(0, 3).forEach(site => {
+            analysis.newSites.forEach(site => {
                 html += this.generateSitePreviewItem(site, 'new');
             });
-
-            if (analysis.newSites.length > 3) {
-                html += `<div class="import-more">还有 ${analysis.newSites.length - 3} 个新增网站...</div>`;
-            }
             html += `</div>`;
         }
 
@@ -1245,13 +1259,9 @@ class SquareInch {
                     <span>${analysis.updateSites.length} 个网站</span>
                 </div>`;
 
-            analysis.updateSites.slice(0, 3).forEach(site => {
+            analysis.updateSites.forEach(site => {
                 html += this.generateSitePreviewItem(site, 'update');
             });
-
-            if (analysis.updateSites.length > 3) {
-                html += `<div class="import-more">还有 ${analysis.updateSites.length - 3} 个覆盖网站...</div>`;
-            }
             html += `</div>`;
         }
 
@@ -1341,11 +1351,22 @@ class SquareInch {
             this.closeImportModal();
 
             // 显示成功提示
-            const totalImported = siteResult.imported + tagResult.imported;
-            const totalAdded = siteResult.added + tagResult.added;
-            const totalUpdated = siteResult.updated + tagResult.updated;
+            let message = '导入完成！';
+            const parts = [];
+            
+            if (siteResult.imported > 0) {
+                parts.push(`网站：新增 ${siteResult.added} 个，覆盖 ${siteResult.updated} 个`);
+            }
+            
+            if (tagResult.imported > 0) {
+                parts.push(`标签：新增 ${tagResult.added} 个，覆盖 ${tagResult.updated} 个`);
+            }
+            
+            if (parts.length > 0) {
+                message += ' ' + parts.join('；');
+            }
 
-            this.showToast(`成功导入 ${totalImported} 个项目！新增 ${totalAdded} 个，覆盖 ${totalUpdated} 个`, 'success');
+            this.showToast(message, 'success');
 
             this.importData = null;
         } catch (error) {

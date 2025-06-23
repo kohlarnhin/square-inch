@@ -5,17 +5,9 @@
   "description": "于方寸之间，见天地之宽 - 个性化网站导航，快速访问常用网站",
 
   "permissions": [
-    "storage",
     "activeTab",
     "contextMenus",
     "tabs"
-  ],
-  
-  "host_permissions": [
-    "https://api.unsplash.com/*",
-    "https://www.google.com/*",
-    "https://favicon.yandex.net/*",
-    "https://icons.duckduckgo.com/*"
   ],
 
   "background": {

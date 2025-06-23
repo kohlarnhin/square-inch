@@ -22,11 +22,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
             url: chrome.runtime.getURL('newtab/newtab.html')
         });
     } else if (info.menuItemId === "add-to-navigation") {
-        // 跳转到导航页面并传递完整URL信息
-        const fullUrl = tab.url;
+        // 跳转到导航页面并传递协议+域名信息
+        const url = new URL(tab.url);
+        const protocolAndDomain = `${url.protocol}//${url.hostname}`;
         
         chrome.tabs.create({
-            url: chrome.runtime.getURL(`newtab/newtab.html?action=add&url=${encodeURIComponent(fullUrl)}`)
+            url: chrome.runtime.getURL(`newtab/newtab.html?action=add&url=${encodeURIComponent(protocolAndDomain)}`)
         });
     }
 });

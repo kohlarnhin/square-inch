@@ -422,12 +422,6 @@ class SquareInch {
             return;
         }
 
-        // 验证 URL 格式
-        if (!this.isValidUrl(siteData.url)) {
-            alert('请输入有效的网址');
-            return;
-        }
-
         this.showLoading();
 
         try {
@@ -723,7 +717,7 @@ class SquareInch {
             const id = card.dataset.id;
             const site = this.sites.find(s => s.id === id);
             if (site) {
-                window.open(site.url, '_blank');
+                this.openUrl(site.url);
             }
         });
     }
@@ -757,6 +751,34 @@ class SquareInch {
     // 获取当前主题
     getCurrentTheme() {
         return this.currentTheme || 'light';
+    }
+
+    // 打开URL的统一方法
+    openUrl(url) {
+        // 检查是否为浏览器内部协议
+        if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('edge://') || url.startsWith('about:')) {
+            // 对于浏览器内部协议，使用chrome.tabs.create API
+            try {
+                if (chrome && chrome.tabs) {
+                    chrome.tabs.create({ url: url });
+                } else {
+                    // 如果chrome.tabs API不可用，则在当前窗口打开
+                    window.location.href = url;
+                }
+            } catch (error) {
+                console.warn('无法使用chrome.tabs API，使用fallback方法:', error);
+                window.location.href = url;
+            }
+        } else {
+            // 对于其他协议，先尝试在新标签页打开
+            try {
+                window.open(url, '_blank');
+            } catch (error) {
+                // 如果window.open失败，则直接导航
+                console.warn('window.open失败，使用fallback方法:', error);
+                window.location.href = url;
+            }
+        }
     }
 
     // 选择所有导入项

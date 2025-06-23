@@ -39,15 +39,15 @@ class SquareInch {
         const action = urlParams.get('action');
         
         if (action === 'add') {
-            const domain = urlParams.get('domain');
+            const fullUrl = urlParams.get('url');
             
-            if (domain) {
-                // 打开添加网站模态框并填充域名
+            if (fullUrl) {
+                // 打开添加网站模态框并填充完整URL
                 this.openModal();
                 
-                // 填充表单，只填充网址字段
+                // 填充表单，填充完整网址
                 setTimeout(() => {
-                    document.getElementById('bookmark-url').value = domain;
+                    document.getElementById('bookmark-url').value = fullUrl;
                     document.getElementById('bookmark-name').focus();
                 }, 100);
                 

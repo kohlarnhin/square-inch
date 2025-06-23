@@ -22,12 +22,11 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
             url: chrome.runtime.getURL('newtab/newtab.html')
         });
     } else if (info.menuItemId === "add-to-navigation") {
-        // 跳转到导航页面并传递域名信息
-        const url = new URL(tab.url);
-        const domain = url.hostname;
+        // 跳转到导航页面并传递完整URL信息
+        const fullUrl = tab.url;
         
         chrome.tabs.create({
-            url: chrome.runtime.getURL(`newtab/newtab.html?action=add&domain=${encodeURIComponent(domain)}`)
+            url: chrome.runtime.getURL(`newtab/newtab.html?action=add&url=${encodeURIComponent(fullUrl)}`)
         });
     }
 });

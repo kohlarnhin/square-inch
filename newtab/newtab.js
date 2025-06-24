@@ -7,6 +7,8 @@ class SquareInch {
         this.currentTagDeleteId = null;
         this.currentTag = 'all'; // 当前选中的标签
         this.activeDeleteRestore = null; // 当前激活的删除恢复函数
+        this.draggedElement = null; // 被拖拽的元素
+        this.draggedId = null; // 被拖拽的网站ID
 
         this.init();
     }
@@ -148,6 +150,16 @@ class SquareInch {
             const stored = localStorage.getItem('square-inch-sites');
             this.sites = stored ? JSON.parse(stored) : this.getExampleSites();
 
+            // 数据兼容性处理：为旧数据添加 sortOrder 字段
+            this.sites.forEach(site => {
+                if (!site.sortOrder) {
+                    site.sortOrder = {};
+                }
+            });
+
+            // 初始化排序：为没有排序信息的数据生成排序
+            this.initializeSortOrder();
+
             // 如果是第一次使用，保存示例网站
             if (!stored) {
                 await this.saveSites();
@@ -168,28 +180,32 @@ class SquareInch {
                 name: '示例一',
                 url: 'https://example1.com',
                 icon: '',
-                tags: ['example-work'] // 对应工作标签
+                tags: ['example-work'], // 对应工作标签
+                sortOrder: {} // 每个标签的排序
             },
             {
                 id: this.generateId(),
                 name: '示例二',
                 url: 'https://example2.com',
                 icon: '',
-                tags: ['example-study'] // 对应学习标签
+                tags: ['example-study'], // 对应学习标签
+                sortOrder: {}
             },
             {
                 id: this.generateId(),
                 name: '示例三',
                 url: 'https://example3.com',
                 icon: '',
-                tags: ['example-life'] // 对应生活标签
+                tags: ['example-life'], // 对应生活标签
+                sortOrder: {}
             },
             {
                 id: this.generateId(),
                 name: '示例四',
                 url: 'https://example4.com',
                 icon: '',
-                tags: ['example-work', 'example-study'] // 多个标签
+                tags: ['example-work', 'example-study'], // 多个标签
+                sortOrder: {}
             }
         ];
     }
@@ -215,11 +231,14 @@ class SquareInch {
             );
         }
 
+        // 根据当前标签的排序顺序进行排序
+        filteredSites = this.sortSitesByCurrentTag(filteredSites);
+
         // 渲染现有网站卡片
         const siteCards = filteredSites.map(site => {
             const iconContent = this.getIconContent(site);
             return `
-                <div class="nav-card" data-id="${site.id}">
+                <div class="nav-card" data-id="${site.id}" draggable="true">
                     <div class="card-actions">
                         <button class="card-action-btn edit-btn" data-action="edit" data-id="${site.id}" title="编辑">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -256,6 +275,253 @@ class SquareInch {
         `;
 
         grid.innerHTML = siteCards + addCard;
+        
+        this.initDragAndDrop();
+    }
+
+    // 根据当前标签排序网站
+    sortSitesByCurrentTag(sites) {
+        if (this.currentTag === 'all') {
+            // 全部标签：按创建时间排序，如果有排序信息则优先使用
+            return sites.sort((a, b) => {
+                const aOrder = a.sortOrder && a.sortOrder['all'] !== undefined ? a.sortOrder['all'] : 9999;
+                const bOrder = b.sortOrder && b.sortOrder['all'] !== undefined ? b.sortOrder['all'] : 9999;
+                return aOrder - bOrder;
+            });
+        } else {
+            // 特定标签：按该标签的排序顺序
+            return sites.sort((a, b) => {
+                const aOrder = a.sortOrder && a.sortOrder[this.currentTag] !== undefined ? a.sortOrder[this.currentTag] : 9999;
+                const bOrder = b.sortOrder && b.sortOrder[this.currentTag] !== undefined ? b.sortOrder[this.currentTag] : 9999;
+                return aOrder - bOrder;
+            });
+        }
+    }
+
+    // 初始化排序：为没有排序信息的数据生成排序
+    initializeSortOrder() {
+        // 为"全部"标签初始化排序
+        let allOrder = 0;
+        this.sites.forEach(site => {
+            if (site.sortOrder['all'] === undefined) {
+                site.sortOrder['all'] = allOrder++;
+            }
+        });
+
+        // 为每个标签初始化排序
+        this.tags.forEach(tag => {
+            const sitesWithTag = this.sites.filter(site => 
+                site.tags && site.tags.includes(tag.id)
+            );
+            
+            let tagOrder = 0;
+            sitesWithTag.forEach(site => {
+                if (site.sortOrder[tag.id] === undefined) {
+                    site.sortOrder[tag.id] = tagOrder++;
+                }
+            });
+        });
+    }
+
+    // 为新网站设置排序位置
+    setNewSiteSortOrder(newSite) {
+        // 为所有相关标签设置排序位置
+        const relevantTags = ['all', ...newSite.tags];
+        
+        relevantTags.forEach(tagId => {
+            // 获取该标签下的最大排序号
+            let maxOrder = -1;
+            this.sites.forEach(site => {
+                if (site.id !== newSite.id && site.sortOrder && site.sortOrder[tagId] !== undefined) {
+                    maxOrder = Math.max(maxOrder, site.sortOrder[tagId]);
+                }
+            });
+            
+            // 设置新的排序位置
+            newSite.sortOrder[tagId] = maxOrder + 1;
+        });
+    }
+
+    // 初始化拖拽功能
+    initDragAndDrop() {
+        const grid = document.getElementById('navigation-grid');
+        const cards = grid.querySelectorAll('.nav-card:not(.add-card)');
+
+        cards.forEach((card, index) => {
+            card.addEventListener('dragstart', this.handleDragStart.bind(this));
+            card.addEventListener('dragend', this.handleDragEnd.bind(this));
+            card.addEventListener('dragover', this.handleDragOver.bind(this));
+            card.addEventListener('drop', this.handleDrop.bind(this));
+        });
+    }
+
+    handleDragStart(e) {
+        // 如果点击的是操作按钮，阻止拖拽
+        if (e.target.closest('.card-actions')) {
+            e.preventDefault();
+            return;
+        }
+
+        this.draggedElement = e.target.closest('.nav-card');
+        this.draggedId = this.draggedElement.dataset.id;
+        
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.draggedElement.outerHTML);
+        
+        // 添加拖拽样式
+        this.draggedElement.style.opacity = '0.5';
+    }
+
+    handleDragEnd(e) {
+        // 恢复样式
+        if (this.draggedElement) {
+            this.draggedElement.style.opacity = '1';
+        }
+        
+        // 清理状态
+        this.draggedElement = null;
+        this.draggedId = null;
+        
+        // 移除所有拖拽相关样式
+        document.querySelectorAll('.nav-card').forEach(card => {
+            card.classList.remove('drag-over');
+        });
+        
+        // 防止触发点击事件
+        this.isDragClick = true;
+        setTimeout(() => {
+            this.isDragClick = false;
+        }, 50);
+    }
+
+    handleDragOver(e) {
+        e.preventDefault();
+        
+        const card = e.target.closest('.nav-card');
+        if (!card || card === this.draggedElement || card.classList.contains('add-card')) {
+            return;
+        }
+        
+        // 清除其他卡片的样式
+        document.querySelectorAll('.nav-card').forEach(c => {
+            if (c !== card) {
+                c.classList.remove('drag-over');
+            }
+        });
+        
+        // 添加悬停样式
+        card.classList.add('drag-over');
+    }
+
+    handleDrop(e) {
+        e.preventDefault();
+        
+        const targetCard = e.target.closest('.nav-card');
+        if (!targetCard || targetCard === this.draggedElement || targetCard.classList.contains('add-card')) {
+            return;
+        }
+        
+        const targetId = targetCard.dataset.id;
+        
+        // 移除悬停样式
+        targetCard.classList.remove('drag-over');
+        
+        // 执行排序
+        this.reorderSites(this.draggedId, targetId);
+    }
+
+    async reorderSites(draggedId, targetId) {
+        // 获取当前标签下的网站
+        let filteredSites = this.sites;
+        if (this.currentTag !== 'all') {
+            filteredSites = this.sites.filter(site =>
+                site.tags && site.tags.includes(this.currentTag)
+            );
+        }
+        filteredSites = this.sortSitesByCurrentTag(filteredSites);
+
+        // 找到拖拽和目标元素的索引
+        const draggedIndex = filteredSites.findIndex(site => site.id === draggedId);
+        const targetIndex = filteredSites.findIndex(site => site.id === targetId);
+
+        if (draggedIndex === -1 || targetIndex === -1) return;
+
+        // 重新排序
+        const draggedSite = filteredSites[draggedIndex];
+        filteredSites.splice(draggedIndex, 1);
+        filteredSites.splice(targetIndex, 0, draggedSite);
+
+        // 更新排序信息
+        filteredSites.forEach((site, index) => {
+            const originalSite = this.sites.find(s => s.id === site.id);
+            if (originalSite) {
+                if (!originalSite.sortOrder) {
+                    originalSite.sortOrder = {};
+                }
+                originalSite.sortOrder[this.currentTag] = index;
+            }
+        });
+
+        // 保存并重新渲染
+        await this.saveSites();
+        this.renderSites();
+    }
+
+
+
+
+
+    // 更新网站排序
+    async updateSiteOrder(draggedId, targetId, insertBefore) {
+        // 获取当前标签下的所有网站，并按排序顺序排列
+        let filteredSites = this.sites;
+        if (this.currentTag !== 'all') {
+            filteredSites = this.sites.filter(site =>
+                site.tags && site.tags.includes(this.currentTag)
+            );
+        }
+        filteredSites = this.sortSitesByCurrentTag(filteredSites);
+
+        // 找到被拖拽和目标网站的索引
+        const draggedIndex = filteredSites.findIndex(site => site.id === draggedId);
+        const targetIndex = filteredSites.findIndex(site => site.id === targetId);
+
+        if (draggedIndex === -1 || targetIndex === -1) return;
+
+        // 计算新的插入位置
+        let newIndex = targetIndex;
+        if (insertBefore) {
+            newIndex = targetIndex;
+        } else {
+            newIndex = targetIndex + 1;
+        }
+
+        // 重新排列数组
+        const draggedSite = filteredSites.splice(draggedIndex, 1)[0];
+        
+        // 调整插入索引
+        if (draggedIndex < newIndex) {
+            newIndex--;
+        }
+        
+        filteredSites.splice(newIndex, 0, draggedSite);
+
+        // 重要：在原始的 this.sites 数组中找到对应的网站并更新排序信息
+        filteredSites.forEach((site, index) => {
+            const originalSite = this.sites.find(s => s.id === site.id);
+            if (originalSite) {
+                if (!originalSite.sortOrder) {
+                    originalSite.sortOrder = {};
+                }
+                originalSite.sortOrder[this.currentTag] = index;
+            }
+        });
+
+
+
+        // 保存数据并重新渲染
+        await this.saveSites();
+        this.renderSites();
     }
 
     // 生成唯一ID
@@ -441,9 +707,13 @@ class SquareInch {
                 // 添加新网站
                 const newSite = {
                     id: this.generateId(),
-                    ...siteData
+                    ...siteData,
+                    sortOrder: {} // 初始化排序
                 };
                 this.sites.push(newSite);
+                
+                // 为新网站设置排序位置
+                this.setNewSiteSortOrder(newSite);
             }
 
             await this.saveSites();
@@ -653,11 +923,14 @@ class SquareInch {
             return;
         }
 
+        // 对过滤后的网站进行排序
+        const sortedSites = this.sortSitesByCurrentTag(filteredSites);
+
         // 渲染过滤后的网站卡片
-        const siteCards = filteredSites.map(site => {
+        const siteCards = sortedSites.map(site => {
             const iconContent = this.getIconContent(site);
             return `
-                <div class="nav-card" data-id="${site.id}">
+                <div class="nav-card" data-id="${site.id}" draggable="true">
                     <div class="card-actions">
                         <button class="card-action-btn edit-btn" data-action="edit" data-id="${site.id}" title="编辑">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -682,6 +955,8 @@ class SquareInch {
         }).join('');
 
         grid.innerHTML = siteCards;
+        
+        this.initDragAndDrop();
     }
 
     // 绑定网格事件
@@ -713,12 +988,18 @@ class SquareInch {
                 return;
             }
 
-            // 处理卡片点击（打开网址）
-            const id = card.dataset.id;
-            const site = this.sites.find(s => s.id === id);
-            if (site) {
-                this.openUrl(site.url);
+            // 只有在非拖拽状态下才处理卡片点击，并且点击的不是在拖拽过程中
+            if (!this.draggedElement && !this.isDragClick) {
+                // 处理卡片点击（打开网址）
+                const id = card.dataset.id;
+                const site = this.sites.find(s => s.id === id);
+                if (site) {
+                    this.openUrl(site.url);
+                }
             }
+            
+            // 重置拖拽点击标志
+            this.isDragClick = false;
         });
     }
 
@@ -1403,7 +1684,7 @@ class SquareInch {
     exportData() {
         try {
             const exportData = {
-                version: "2.0",
+                version: "3.0", // 更新版本号以支持排序
                 timestamp: new Date().toISOString(),
                 sites: this.sites,
                 tags: this.tags,
@@ -1416,7 +1697,7 @@ class SquareInch {
             // 创建下载链接
             const link = document.createElement('a');
             link.href = URL.createObjectURL(dataBlob);
-            link.download = `快速导航_${new Date().toISOString().split('T')[0]}.json`;
+            link.download = `方寸导航_${new Date().toISOString().split('T')[0]}.json`;
 
             // 触发下载
             document.body.appendChild(link);
@@ -1738,19 +2019,29 @@ class SquareInch {
         selectedSites.forEach(importSite => {
             const existingIndex = existingNamesMap.get(importSite.name.toLowerCase());
 
+            // 确保导入的网站有 sortOrder 字段
+            if (!importSite.sortOrder) {
+                importSite.sortOrder = {};
+            }
+
             if (existingIndex !== undefined) {
-                // 覆盖现有网站
+                // 覆盖现有网站，但保持原有ID
+                const originalId = this.sites[existingIndex].id;
                 this.sites[existingIndex] = {
                     ...importSite,
-                    id: this.sites[existingIndex].id // 保持原有ID
+                    id: originalId
                 };
                 updated++;
             } else {
                 // 新增网站
-                this.sites.push({
+                const newSite = {
                     ...importSite,
-                    id: this.generateId() // 生成新ID
-                });
+                    id: this.generateId()
+                };
+                this.sites.push(newSite);
+                
+                // 为新导入的网站设置排序位置
+                this.setNewSiteSortOrder(newSite);
                 added++;
             }
         });

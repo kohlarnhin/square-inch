@@ -708,10 +708,16 @@ body {
     gap: 0.5rem;
     opacity: 0;
     transition: var(--transition);
+    z-index: 3; /* 确保在拖拽手柄之上 */
 }
 
 .nav-card:hover .card-actions {
     opacity: 1;
+}
+
+/* 确保操作按钮区域不显示拖拽光标 */
+.card-actions * {
+    cursor: pointer !important;
 }
 
 .card-action-btn {
@@ -1811,4 +1817,22 @@ body {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* 拖拽样式 */
+.nav-card[draggable="true"]:not(.add-card) {
+    transition: var(--transition);
+    cursor: grab;
+}
+
+.nav-card[draggable="true"]:not(.add-card):active {
+    cursor: grabbing;
+}
+
+/* 拖拽悬停效果 */
+.nav-card.drag-over {
+    border: 2px solid var(--primary-color);
+    background: rgba(79, 70, 229, 0.05);
+    transform: scale(1.02);
+    transition: all 0.2s ease;
 }

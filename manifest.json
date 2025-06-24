@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "方寸",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "于方寸之间，见天地之宽 - 个性化网站导航，快速访问常用网站",
 
   "permissions": [

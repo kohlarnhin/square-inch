@@ -6,7 +6,8 @@ class SquareInch {
         this.currentEditingId = null;
         this.currentTagDeleteId = null;
         this.currentTag = 'all'; // 当前选中的标签
-        this.activeDeleteRestore = null; // 当前激活的删除恢复函数
+        this.recycleBin = { sites: {}, tags: {} }; // 回收站
+
         this.draggedElement = null; // 被拖拽的元素
         this.draggedId = null; // 被拖拽的网站ID
 
@@ -18,8 +19,9 @@ class SquareInch {
         this.showLoading();
         
         try {
-            await this.loadSites();
-            await this.loadTags();
+                    await this.loadSites();
+        await this.loadTags();
+        await this.loadRecycleBin();
             this.setupEventListeners();
             this.startClock();
             this.renderTags();
@@ -108,6 +110,9 @@ class SquareInch {
 
         // 标签功能
         this.initTags();
+
+        // 回收站功能
+        this.initRecycleBin();
 
         // 绑定网格事件（只绑定一次）
         this.bindGridEvents();
@@ -529,13 +534,7 @@ class SquareInch {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
 
-    // 恢复所有删除确认状态
-    restoreAllDeleteConfirms() {
-        if (this.activeDeleteRestore) {
-            this.activeDeleteRestore();
-            this.activeDeleteRestore = null;
-        }
-    }
+
 
     // 获取默认图标
 
@@ -736,30 +735,62 @@ class SquareInch {
         }
     }
 
-    // 删除网站
-    deleteSite(id, deleteBtn) {
-        // 恢复所有其他的删除确认状态
-        this.restoreAllDeleteConfirms();
-        
-        const card = deleteBtn.closest('.nav-card');
+    // 删除网站 - 直接删除模式
+    async deleteSite(id, deleteBtn) {
         const site = this.sites.find(s => s.id === id);
         if (!site) return;
         
-        // 保存原内容
-        const originalContent = card.innerHTML;
+        // 添加删除动画
+        const card = deleteBtn.closest('.nav-card');
+        card.classList.add('deleting');
         
-        // 创建确认删除的内容，添加动画过渡
-        const confirmContent = `
-            <div class="delete-confirm-content">
-                <span class="confirm-text">删除此网站?</span>
-                <div class="confirm-actions">
-                    <button class="confirm-btn">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+        // 短暂延迟后执行删除，让动画播放
+        setTimeout(async () => {
+            await this.confirmDeleteSite(id, site);
+        }, 200);
+    }
+
+    // 确认删除网站
+    async confirmDeleteSite(id, siteData) {
+        // 保存删除的网站信息用于撤销
+        const deletedSite = this.sites.find(s => s.id === id);
+        if (!deletedSite) return;
+        
+        // 保存到回收站
+        await this.addSiteToRecycleBin(deletedSite);
+        
+        // 执行删除
+        this.sites = this.sites.filter(s => s.id !== id);
+        await this.saveSites();
+        this.renderSites();
+        this.renderTags(); // 刷新左侧标签列表以更新网站数量
+        this.updateRecycleBinButton(); // 更新回收站按钮状态
+        
+        // 显示删除成功的Toast with 撤销选项
+        this.showDeleteSuccessToast(deletedSite);
+    }
+
+    // 显示删除成功Toast with 撤销功能
+    showDeleteSuccessToast(deletedSite) {
+        const toastId = 'delete-success-' + Date.now();
+        const siteName = deletedSite.name || this.getDomain(deletedSite.url);
+        
+        const toastHtml = `
+            <div id="${toastId}" class="toast delete-success">
+                <div class="toast-content">
+                    <div class="toast-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="20,6 9,17 4,12"></polyline>
                         </svg>
+                    </div>
+                    <div class="toast-message">
+                        <span class="toast-title">已删除 "${this.escapeHtml(siteName)}"</span>
+                    </div>
+                    <button class="toast-action undo-btn" data-site='${JSON.stringify(deletedSite)}'>
+                        <span>撤销</span>
                     </button>
-                    <button class="cancel-btn">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <button class="toast-close">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
@@ -768,52 +799,73 @@ class SquareInch {
             </div>
         `;
         
-        // 添加动画类并设置内容
-        card.style.transition = 'none';
-        card.classList.add('delete-confirm-mode');
-        card.innerHTML = confirmContent;
+        // 添加到页面
+        const toastContainer = this.getOrCreateToastContainer();
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
         
-        // 强制重绘后启用过渡
-        card.offsetHeight; // 触发重绘
-        card.style.transition = '';
+        const toastElement = document.getElementById(toastId);
         
-        // 绑定事件
-        const confirmBtn = card.querySelector('.confirm-btn');
-        const cancelBtn = card.querySelector('.cancel-btn');
-        
-        const restore = () => {
-            card.classList.remove('delete-confirm-mode');
-            card.innerHTML = originalContent;
-            this.activeDeleteRestore = null; // 清除激活状态
-        };
-        
-        // 设置当前激活的恢复函数
-        this.activeDeleteRestore = restore;
-        
-        confirmBtn.addEventListener('click', async () => {
-            await this.confirmDeleteSite(id);
+        // 显示动画
+        requestAnimationFrame(() => {
+            toastElement.classList.add('show');
         });
         
-        cancelBtn.addEventListener('click', restore);
+        // 绑定撤销事件
+        const undoBtn = toastElement.querySelector('.undo-btn');
+        const closeBtn = toastElement.querySelector('.toast-close');
         
-        // 点击其他地方恢复
-        setTimeout(() => {
-            document.addEventListener('click', function closeConfirm(e) {
-                if (!card.contains(e.target)) {
-                    restore();
-                    document.removeEventListener('click', closeConfirm);
+        const removeToast = () => {
+            toastElement.classList.remove('show');
+            setTimeout(() => {
+                if (toastElement.parentNode) {
+                    toastElement.parentNode.removeChild(toastElement);
                 }
-            });
-        }, 0);
+            }, 300);
+        };
+        
+        undoBtn.addEventListener('click', async () => {
+            // 执行撤销
+            await this.undoDelete(deletedSite);
+            removeToast();
+        });
+        
+        closeBtn.addEventListener('click', removeToast);
+        
+        // 5秒后自动消失
+        setTimeout(removeToast, 5000);
     }
 
-    // 确认删除网站
-    async confirmDeleteSite(id) {
-        this.sites = this.sites.filter(s => s.id !== id);
+    // 撤销删除
+    async undoDelete(siteData) {
+        // 恢复网站
+        this.sites.push(siteData);
         await this.saveSites();
+        
+        // 从回收站移除
+        const siteName = siteData.name || this.getDomain(siteData.url);
+        if (this.recycleBin.sites[siteName]) {
+            delete this.recycleBin.sites[siteName];
+            await this.saveRecycleBin();
+            this.updateRecycleBinButton();
+        }
+        
         this.renderSites();
-        this.renderTags(); // 刷新左侧标签列表以更新网站数量
-        this.activeDeleteRestore = null; // 清除激活状态
+        this.renderTags();
+        
+        // 显示撤销成功的提示
+        this.showToast(`已恢复 "${this.escapeHtml(siteData.name || this.getDomain(siteData.url))}"`, 'success');
+    }
+
+    // 获取或创建Toast容器
+    getOrCreateToastContainer() {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        return container;
     }
 
     // 确认删除（兼容旧的删除模态框）
@@ -1289,11 +1341,8 @@ class SquareInch {
         this.showToast('标签添加成功！', 'success');
     }
 
-    // 删除标签
-    deleteTag(tagId, deleteBtn) {
-        // 恢复所有其他的删除确认状态
-        this.restoreAllDeleteConfirms();
-        
+    // 删除标签 - 直接删除模式
+    async deleteTag(tagId, deleteBtn) {
         const tag = this.tags.find(t => t.id === tagId);
         if (!tag) return;
 
@@ -1308,72 +1357,19 @@ class SquareInch {
             return;
         }
 
-        const tagItem = deleteBtn.closest('.tag-item');
-        
-        // 保存原内容
-        const originalContent = tagItem.innerHTML;
-        
-        // 创建确认删除的内容
-        const confirmContent = `
-            <div class="delete-confirm-content">
-                <span class="confirm-text">删除?</span>
-                <div class="confirm-actions">
-                    <button class="confirm-btn">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                            <polyline points="20,6 9,17 4,12"></polyline>
-                        </svg>
-                    </button>
-                    <button class="cancel-btn">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        // 添加动画类并设置内容
-        tagItem.style.transition = 'none';
-        tagItem.classList.add('delete-confirm-mode');
-        tagItem.innerHTML = confirmContent;
-        
-        // 强制重绘后启用过渡
-        tagItem.offsetHeight; // 触发重绘
-        tagItem.style.transition = '';
-        
-        // 绑定事件
-        const confirmBtn = tagItem.querySelector('.confirm-btn');
-        const cancelBtn = tagItem.querySelector('.cancel-btn');
-        
-        const restore = () => {
-            tagItem.classList.remove('delete-confirm-mode');
-            tagItem.innerHTML = originalContent;
-            this.activeDeleteRestore = null; // 清除激活状态
-        };
-        
-        // 设置当前激活的恢复函数
-        this.activeDeleteRestore = restore;
-        
-        confirmBtn.addEventListener('click', async () => {
-            await this.confirmDeleteTag(tagId);
-        });
-        
-        cancelBtn.addEventListener('click', restore);
-        
-        // 点击其他地方恢复
-        setTimeout(() => {
-            document.addEventListener('click', function closeConfirm(e) {
-                if (!tagItem.contains(e.target)) {
-                    restore();
-                    document.removeEventListener('click', closeConfirm);
-                }
-            });
-        }, 0);
+        // 直接删除
+        await this.confirmDeleteTag(tagId, tag);
     }
 
     // 确认删除标签
-    async confirmDeleteTag(tagId) {
+    async confirmDeleteTag(tagId, tagData) {
+        // 保存删除的标签信息用于撤销
+        const deletedTag = tagData || this.tags.find(t => t.id === tagId);
+        if (!deletedTag) return;
+
+        // 保存到回收站
+        await this.addTagToRecycleBin(deletedTag);
+
         // 删除标签
         this.tags = this.tags.filter(tag => tag.id !== tagId);
         await this.saveTags();
@@ -1387,9 +1383,625 @@ class SquareInch {
         this.renderTags();
         this.renderSites();
         this.updateTagsSelect();
-        this.activeDeleteRestore = null; // 清除激活状态
+        this.updateRecycleBinButton(); // 更新回收站按钮状态
 
-        this.showToast('标签删除成功', 'success');
+        // 显示删除成功的Toast with 撤销选项
+        this.showTagDeleteSuccessToast(deletedTag);
+    }
+
+    // 显示标签删除成功Toast with 撤销功能
+    showTagDeleteSuccessToast(deletedTag) {
+        const toastId = 'tag-delete-success-' + Date.now();
+        
+        const toastHtml = `
+            <div id="${toastId}" class="toast delete-success">
+                <div class="toast-content">
+                    <div class="toast-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20,6 9,17 4,12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="toast-message">
+                        <span class="toast-title">已删除标签 "${this.escapeHtml(deletedTag.name)}"</span>
+                    </div>
+                    <button class="toast-action undo-btn" data-tag='${JSON.stringify(deletedTag)}'>
+                        <span>撤销</span>
+                    </button>
+                    <button class="toast-close">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // 添加到页面
+        const toastContainer = this.getOrCreateToastContainer();
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        
+        const toastElement = document.getElementById(toastId);
+        
+        // 显示动画
+        requestAnimationFrame(() => {
+            toastElement.classList.add('show');
+        });
+        
+        // 绑定撤销事件
+        const undoBtn = toastElement.querySelector('.undo-btn');
+        const closeBtn = toastElement.querySelector('.toast-close');
+        
+        const removeToast = () => {
+            toastElement.classList.remove('show');
+            setTimeout(() => {
+                if (toastElement.parentNode) {
+                    toastElement.parentNode.removeChild(toastElement);
+                }
+            }, 300);
+        };
+        
+        undoBtn.addEventListener('click', async () => {
+            // 执行撤销
+            await this.undoTagDelete(deletedTag);
+            removeToast();
+        });
+        
+        closeBtn.addEventListener('click', removeToast);
+        
+        // 5秒后自动消失
+        setTimeout(removeToast, 5000);
+    }
+
+    // 撤销标签删除
+    async undoTagDelete(tagData) {
+        // 恢复标签
+        this.tags.push(tagData);
+        await this.saveTags();
+        
+        // 从回收站移除
+        if (this.recycleBin.tags[tagData.name]) {
+            delete this.recycleBin.tags[tagData.name];
+            await this.saveRecycleBin();
+            this.updateRecycleBinButton();
+        }
+        
+        this.renderTags();
+        this.renderSites();
+        this.updateTagsSelect();
+        
+        // 显示撤销成功的提示
+        this.showToast(`已恢复标签 "${this.escapeHtml(tagData.name)}"`, 'success');
+    }
+
+    // =================== 回收站功能 ===================
+    
+    // 加载回收站数据
+    async loadRecycleBin() {
+        try {
+            const stored = localStorage.getItem('square-inch-recycle-bin');
+            this.recycleBin = stored ? JSON.parse(stored) : { sites: {}, tags: {} };
+            
+            // 清理过期数据（30天）
+            await this.cleanExpiredRecycleBin();
+        } catch (error) {
+            console.error('加载回收站失败:', error);
+            this.recycleBin = { sites: {}, tags: {} };
+        }
+    }
+
+    // 保存回收站数据
+    async saveRecycleBin() {
+        try {
+            localStorage.setItem('square-inch-recycle-bin', JSON.stringify(this.recycleBin));
+        } catch (error) {
+            console.error('保存回收站失败:', error);
+        }
+    }
+
+    // 清理过期的回收站数据
+    async cleanExpiredRecycleBin() {
+        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+        let hasChanges = false;
+
+        // 清理过期网站
+        Object.keys(this.recycleBin.sites).forEach(name => {
+            if (this.recycleBin.sites[name].deletedAt < thirtyDaysAgo) {
+                delete this.recycleBin.sites[name];
+                hasChanges = true;
+            }
+        });
+
+        // 清理过期标签
+        Object.keys(this.recycleBin.tags).forEach(name => {
+            if (this.recycleBin.tags[name].deletedAt < thirtyDaysAgo) {
+                delete this.recycleBin.tags[name];
+                hasChanges = true;
+            }
+        });
+
+        if (hasChanges) {
+            await this.saveRecycleBin();
+        }
+    }
+
+    // 添加网站到回收站
+    async addSiteToRecycleBin(siteData) {
+        const name = siteData.name || this.getDomain(siteData.url);
+        this.recycleBin.sites[name] = {
+            ...siteData,
+            deletedAt: Date.now()
+        };
+        await this.saveRecycleBin();
+    }
+
+    // 添加标签到回收站
+    async addTagToRecycleBin(tagData) {
+        this.recycleBin.tags[tagData.name] = {
+            ...tagData,
+            deletedAt: Date.now()
+        };
+        await this.saveRecycleBin();
+    }
+
+    // 获取回收站统计
+    getRecycleBinStats() {
+        const sitesCount = Object.keys(this.recycleBin.sites).length;
+        const tagsCount = Object.keys(this.recycleBin.tags).length;
+        return { sites: sitesCount, tags: tagsCount, total: sitesCount + tagsCount };
+    }
+
+    // 初始化回收站功能
+    initRecycleBin() {
+        // 回收站按钮点击事件
+        document.getElementById('recycle-bin-btn').addEventListener('click', () => {
+            this.openRecycleBin();
+        });
+
+        // 回收站模态框事件
+        document.getElementById('close-recycle-bin-modal').addEventListener('click', () => {
+            this.closeRecycleBin();
+        });
+
+        document.getElementById('close-recycle-bin').addEventListener('click', () => {
+            this.closeRecycleBin();
+        });
+
+        // 批量操作事件
+        document.getElementById('select-all-recycle').addEventListener('click', () => {
+            this.selectAllRecycleItems(true);
+        });
+
+        document.getElementById('select-none-recycle').addEventListener('click', () => {
+            this.selectAllRecycleItems(false);
+        });
+
+        document.getElementById('clear-recycle-bin').addEventListener('click', () => {
+            this.clearRecycleBin();
+        });
+
+        document.getElementById('restore-selected').addEventListener('click', () => {
+            this.restoreSelectedItems();
+        });
+
+        // 冲突模态框事件
+        document.getElementById('close-restore-conflict-modal').addEventListener('click', () => {
+            this.closeRestoreConflictModal();
+        });
+
+        document.getElementById('cancel-restore').addEventListener('click', () => {
+            this.closeRestoreConflictModal();
+        });
+
+        document.getElementById('apply-conflict-resolution').addEventListener('click', () => {
+            this.applyConflictResolution();
+        });
+
+        // 初始化回收站按钮状态
+        this.updateRecycleBinButton();
+    }
+
+    // 更新回收站按钮状态
+    updateRecycleBinButton() {
+        const stats = this.getRecycleBinStats();
+        const countElement = document.getElementById('recycle-bin-count');
+        
+        if (stats.total > 0) {
+            countElement.textContent = stats.total;
+            countElement.style.display = 'flex';
+        } else {
+            countElement.style.display = 'none';
+        }
+    }
+
+    // 打开回收站
+    openRecycleBin() {
+        this.updateRecycleBinButton();
+        
+        const stats = this.getRecycleBinStats();
+        document.getElementById('recycle-sites-count').textContent = stats.sites;
+        document.getElementById('recycle-tags-count').textContent = stats.tags;
+
+        this.renderRecycleBinContent();
+        document.getElementById('recycle-bin-modal').classList.add('show');
+    }
+
+    // 关闭回收站
+    closeRecycleBin() {
+        document.getElementById('recycle-bin-modal').classList.remove('show');
+    }
+
+    // 渲染回收站内容
+    renderRecycleBinContent() {
+        const container = document.getElementById('recycle-bin-content');
+        const stats = this.getRecycleBinStats();
+
+        if (stats.total === 0) {
+            container.innerHTML = `
+                <div class="empty-recycle-bin">
+                    <div class="empty-recycle-bin-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <polyline points="3,6 5,6 21,6"></polyline>
+                            <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                        </svg>
+                    </div>
+                    <p>回收站是空的</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+
+        // 渲染网站
+        if (stats.sites > 0) {
+            html += `
+                <div class="recycle-section">
+                    <div class="recycle-section-title">网站 (${stats.sites})</div>
+            `;
+
+            Object.keys(this.recycleBin.sites).forEach(name => {
+                const site = this.recycleBin.sites[name];
+                const deleteDate = new Date(site.deletedAt).toLocaleDateString('zh-CN');
+                const iconContent = site.icon ? 
+                    `<img src="${site.icon}" alt="${name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` :
+                    this.getIconText(site);
+
+                html += `
+                    <div class="recycle-item" data-type="site" data-name="${name}">
+                        <label class="recycle-checkbox">
+                            <input type="checkbox" data-type="site" data-name="${name}">
+                            <span class="recycle-checkmark"></span>
+                        </label>
+                        <div class="recycle-icon">${iconContent}</div>
+                        <div class="recycle-info">
+                            <div class="recycle-name">${this.escapeHtml(name)}</div>
+                            <div class="recycle-details">
+                                <span class="recycle-url">${this.escapeHtml(this.getDomain(site.url))}</span>
+                                <span class="recycle-date">删除于 ${deleteDate}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+        }
+
+        // 渲染标签
+        if (stats.tags > 0) {
+            html += `
+                <div class="recycle-section">
+                    <div class="recycle-section-title">标签 (${stats.tags})</div>
+            `;
+
+            Object.keys(this.recycleBin.tags).forEach(name => {
+                const tag = this.recycleBin.tags[name];
+                const deleteDate = new Date(tag.deletedAt).toLocaleDateString('zh-CN');
+
+                html += `
+                    <div class="recycle-item" data-type="tag" data-name="${name}">
+                        <label class="recycle-checkbox">
+                            <input type="checkbox" data-type="tag" data-name="${name}">
+                            <span class="recycle-checkmark"></span>
+                        </label>
+                        <div class="recycle-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M7 7h10v10H7z"></path>
+                                <path d="M9 9h6v6H9z"></path>
+                            </svg>
+                        </div>
+                        <div class="recycle-info">
+                            <div class="recycle-name">${this.escapeHtml(name)}</div>
+                            <div class="recycle-details">
+                                <span class="recycle-date">删除于 ${deleteDate}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+        }
+
+        container.innerHTML = html;
+    }
+
+    // 选择/取消选择所有回收站项目
+    selectAllRecycleItems(select) {
+        const checkboxes = document.querySelectorAll('#recycle-bin-content input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = select;
+        });
+    }
+
+    // 清空回收站
+    async clearRecycleBin() {
+        if (confirm('确定要清空回收站吗？此操作无法撤销。')) {
+            this.recycleBin = { sites: {}, tags: {} };
+            await this.saveRecycleBin();
+            this.renderRecycleBinContent();
+            this.updateRecycleBinButton();
+            this.showToast('回收站已清空', 'success');
+        }
+    }
+
+    // 恢复选中的项目
+    async restoreSelectedItems() {
+        const checkboxes = document.querySelectorAll('#recycle-bin-content input[type="checkbox"]:checked');
+        if (checkboxes.length === 0) {
+            this.showToast('请选择要恢复的项目', 'warning');
+            return;
+        }
+
+        const toRestore = [];
+        checkboxes.forEach(checkbox => {
+            const type = checkbox.dataset.type;
+            const name = checkbox.dataset.name;
+            toRestore.push({ type, name });
+        });
+
+        // 检查冲突
+        const conflicts = this.checkRestoreConflicts(toRestore);
+        
+        if (conflicts.length > 0) {
+            // 有冲突，显示冲突处理界面
+            this.showRestoreConflictModal(toRestore, conflicts);
+        } else {
+            // 无冲突，直接恢复
+            await this.executeRestore(toRestore);
+        }
+    }
+
+    // 检查恢复冲突
+    checkRestoreConflicts(toRestore) {
+        const conflicts = [];
+
+        toRestore.forEach(item => {
+            if (item.type === 'site') {
+                // 检查网站名称冲突
+                const existingSite = this.sites.find(site => 
+                    (site.name || this.getDomain(site.url)) === item.name
+                );
+                if (existingSite) {
+                    conflicts.push(item);
+                }
+            } else if (item.type === 'tag') {
+                // 检查标签名称冲突
+                const existingTag = this.tags.find(tag => tag.name === item.name);
+                if (existingTag) {
+                    conflicts.push(item);
+                }
+            }
+        });
+
+        return conflicts;
+    }
+
+    // 显示恢复冲突模态框
+    showRestoreConflictModal(toRestore, conflicts) {
+        const container = document.getElementById('conflict-items');
+        let html = '';
+
+        conflicts.forEach((item, index) => {
+            const data = item.type === 'site' ? 
+                this.recycleBin.sites[item.name] : 
+                this.recycleBin.tags[item.name];
+
+            html += `
+                <div class="conflict-item">
+                    <div class="conflict-item-header">
+                        <div class="conflict-item-name">${this.escapeHtml(item.name)} (${item.type === 'site' ? '网站' : '标签'})</div>
+                    </div>
+                    <div class="conflict-options">
+                        <label class="conflict-option">
+                            <input type="radio" name="conflict-${index}" value="skip" checked>
+                            <div class="conflict-option-content">
+                                <div class="conflict-option-label">跳过恢复</div>
+                                <div class="conflict-option-desc">保留现有项目，不恢复此项</div>
+                            </div>
+                        </label>
+                        <label class="conflict-option">
+                            <input type="radio" name="conflict-${index}" value="replace">
+                            <div class="conflict-option-content">
+                                <div class="conflict-option-label">覆盖现有</div>
+                                <div class="conflict-option-desc">用回收站中的数据覆盖现有项目</div>
+                            </div>
+                        </label>
+                        <label class="conflict-option">
+                            <input type="radio" name="conflict-${index}" value="rename">
+                            <div class="conflict-option-content">
+                                <div class="conflict-option-label">重命名恢复</div>
+                                <div class="conflict-option-desc">恢复时自动重命名为"${this.escapeHtml(item.name)} (恢复)"</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+        
+        // 保存恢复数据供后续使用
+        this.pendingRestore = { toRestore, conflicts };
+        
+        document.getElementById('restore-conflict-modal').classList.add('show');
+    }
+
+    // 关闭恢复冲突模态框
+    closeRestoreConflictModal() {
+        document.getElementById('restore-conflict-modal').classList.remove('show');
+        this.pendingRestore = null;
+    }
+
+    // 应用冲突解决方案
+    async applyConflictResolution() {
+        if (!this.pendingRestore) return;
+
+        const { toRestore, conflicts } = this.pendingRestore;
+        const resolutions = {};
+
+        // 收集用户选择
+        conflicts.forEach((item, index) => {
+            const selectedOption = document.querySelector(`input[name="conflict-${index}"]:checked`);
+            if (selectedOption) {
+                resolutions[`${item.type}-${item.name}`] = selectedOption.value;
+            }
+        });
+
+        // 执行恢复
+        await this.executeRestoreWithResolutions(toRestore, resolutions);
+        
+        this.closeRestoreConflictModal();
+    }
+
+    // 执行恢复（无冲突）
+    async executeRestore(toRestore) {
+        let restoredCount = 0;
+
+        for (const item of toRestore) {
+            if (item.type === 'site') {
+                const siteData = this.recycleBin.sites[item.name];
+                if (siteData) {
+                    // 生成新的ID以避免冲突
+                    const newSite = { ...siteData, id: this.generateId() };
+                    delete newSite.deletedAt;
+                    
+                    this.sites.push(newSite);
+                    delete this.recycleBin.sites[item.name];
+                    restoredCount++;
+                }
+            } else if (item.type === 'tag') {
+                const tagData = this.recycleBin.tags[item.name];
+                if (tagData) {
+                    const newTag = { ...tagData, id: this.generateId() };
+                    delete newTag.deletedAt;
+                    
+                    this.tags.push(newTag);
+                    delete this.recycleBin.tags[item.name];
+                    restoredCount++;
+                }
+            }
+        }
+
+        // 保存数据
+        await this.saveSites();
+        await this.saveTags();
+        await this.saveRecycleBin();
+
+        // 刷新界面
+        this.renderSites();
+        this.renderTags();
+        this.renderRecycleBinContent();
+        this.updateTagsSelect();
+        this.updateRecycleBinButton();
+
+        this.showToast(`已恢复 ${restoredCount} 个项目`, 'success');
+        this.closeRecycleBin();
+    }
+
+    // 执行恢复（有冲突解决方案）
+    async executeRestoreWithResolutions(toRestore, resolutions) {
+        let restoredCount = 0;
+
+        for (const item of toRestore) {
+            const resolutionKey = `${item.type}-${item.name}`;
+            const resolution = resolutions[resolutionKey] || 'skip';
+
+            if (resolution === 'skip') {
+                continue; // 跳过此项
+            }
+
+            if (item.type === 'site') {
+                const siteData = this.recycleBin.sites[item.name];
+                if (!siteData) continue;
+
+                if (resolution === 'replace') {
+                    // 覆盖现有
+                    const existingIndex = this.sites.findIndex(site => 
+                        (site.name || this.getDomain(site.url)) === item.name
+                    );
+                    if (existingIndex !== -1) {
+                        const newSite = { ...siteData };
+                        delete newSite.deletedAt;
+                        this.sites[existingIndex] = newSite;
+                    }
+                } else if (resolution === 'rename') {
+                    // 重命名恢复
+                    const newSite = { 
+                        ...siteData, 
+                        id: this.generateId(),
+                        name: `${siteData.name || this.getDomain(siteData.url)} (恢复)`
+                    };
+                    delete newSite.deletedAt;
+                    this.sites.push(newSite);
+                }
+
+                delete this.recycleBin.sites[item.name];
+                restoredCount++;
+
+            } else if (item.type === 'tag') {
+                const tagData = this.recycleBin.tags[item.name];
+                if (!tagData) continue;
+
+                if (resolution === 'replace') {
+                    // 覆盖现有
+                    const existingIndex = this.tags.findIndex(tag => tag.name === item.name);
+                    if (existingIndex !== -1) {
+                        const newTag = { ...tagData };
+                        delete newTag.deletedAt;
+                        this.tags[existingIndex] = newTag;
+                    }
+                } else if (resolution === 'rename') {
+                    // 重命名恢复
+                    const newTag = { 
+                        ...tagData, 
+                        id: this.generateId(),
+                        name: `${tagData.name} (恢复)`
+                    };
+                    delete newTag.deletedAt;
+                    this.tags.push(newTag);
+                }
+
+                delete this.recycleBin.tags[item.name];
+                restoredCount++;
+            }
+        }
+
+        // 保存数据
+        await this.saveSites();
+        await this.saveTags();
+        await this.saveRecycleBin();
+
+        // 刷新界面
+        this.renderSites();
+        this.renderTags();
+        this.renderRecycleBinContent();
+        this.updateTagsSelect();
+        this.updateRecycleBinButton();
+
+        this.showToast(`已恢复 ${restoredCount} 个项目`, 'success');
+        this.closeRecycleBin();
     }
 
     // 关闭标签删除模态框（兼容旧代码）

@@ -34,6 +34,17 @@
                 <input type="file" id="import-file" accept=".json" style="display: none;">
             </div>
 
+            <!-- 回收站按钮 -->
+            <button id="recycle-bin-btn" class="toolbar-btn recycle-bin-toggle" title="回收站">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3,6 5,6 21,6"></polyline>
+                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+                <span id="recycle-bin-count" class="recycle-bin-count" style="display: none;"></span>
+            </button>
+
             <!-- 主题切换按钮 -->
             <button id="theme-toggle" class="toolbar-btn theme-toggle" title="切换主题">
                 <svg class="theme-icon sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -303,6 +314,84 @@
             <div class="import-modal-actions">
                 <button id="cancel-import" class="btn btn-secondary">取消</button>
                 <button id="confirm-import" class="btn btn-primary">确认导入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 回收站模态框 -->
+    <div id="recycle-bin-modal" class="modal">
+        <div class="modal-content recycle-bin-modal-content">
+            <div class="modal-header">
+                <h3>回收站</h3>
+                <button class="close-btn" id="close-recycle-bin-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="recycle-bin-modal-body">
+                <div class="recycle-bin-info">
+                    <div class="recycle-bin-stats">
+                        <div class="stats-item">
+                            <span class="stats-label">网站:</span>
+                            <span id="recycle-sites-count" class="stats-value">0</span>
+                            <span class="stats-unit">个</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="stats-label">标签:</span>
+                            <span id="recycle-tags-count" class="stats-value">0</span>
+                            <span class="stats-unit">个</span>
+                        </div>
+                    </div>
+                    <div class="recycle-bin-actions">
+                        <button id="select-all-recycle" class="btn btn-link">全选</button>
+                        <button id="select-none-recycle" class="btn btn-link">全不选</button>
+                        <button id="clear-recycle-bin" class="btn btn-danger">清空回收站</button>
+                    </div>
+                </div>
+                <div id="recycle-bin-content" class="recycle-bin-content">
+                    <!-- 回收站内容将通过JavaScript动态生成 -->
+                </div>
+            </div>
+            <div class="recycle-bin-modal-actions">
+                <button id="restore-selected" class="btn btn-primary">恢复选中项</button>
+                <button id="close-recycle-bin" class="btn btn-secondary">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 恢复冲突确认模态框 -->
+    <div id="restore-conflict-modal" class="modal">
+        <div class="modal-content restore-conflict-modal-content">
+            <div class="modal-header">
+                <h3>恢复冲突</h3>
+                <button class="close-btn" id="close-restore-conflict-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="restore-conflict-modal-body">
+                <div class="conflict-info">
+                    <div class="conflict-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 16v-4"/>
+                            <path d="M12 8h.01"/>
+                        </svg>
+                    </div>
+                    <h4>发现名称冲突</h4>
+                    <p>以下项目与现有数据存在名称冲突，请选择处理方式：</p>
+                </div>
+                <div id="conflict-items" class="conflict-items">
+                    <!-- 冲突项目将通过JavaScript动态生成 -->
+                </div>
+            </div>
+            <div class="restore-conflict-modal-actions">
+                <button id="apply-conflict-resolution" class="btn btn-primary">应用选择</button>
+                <button id="cancel-restore" class="btn btn-secondary">取消</button>
             </div>
         </div>
     </div>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑模式 - 方寸</title>
+    <link rel="stylesheet" href="edit.css">
+</head>
+<body>
+    <!-- 编辑模式顶部指示条 -->
+    <div class="edit-mode-indicator"></div>
+
+    <!-- 主要内容区域 -->
+    <main class="edit-container">
+        <!-- 编辑模式控制栏 -->
+        <div class="edit-controls">
+            <div class="edit-controls-container">
+                <div class="edit-title">
+                    <h1>编辑模式</h1>
+                    <p>直接编辑所有网站信息</p>
+                </div>
+                <div class="edit-actions">
+                    <button id="back-to-nav" class="edit-control-btn back-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m12 19-7-7 7-7"/>
+                            <path d="m19 12H5"/>
+                        </svg>
+                        返回导航
+                    </button>
+                    <button id="save-changes" class="edit-control-btn save-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m9 12 2 2 4-4"/>
+                            <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3"></path>
+                            <path d="M3 12c1 0 3-1-3-3s-2-3-3-3-3 1-3 3 2 3 3 3"></path>
+                        </svg>
+                        保存更改
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 网站编辑网格 -->
+        <section class="edit-grid-section">
+            <div id="edit-grid" class="edit-grid">
+                <!-- 编辑卡片将通过 JavaScript 动态生成 -->
+            </div>
+        </section>
+    </main>
+
+    <!-- 退出确认模态框 -->
+    <div id="exit-confirm-modal" class="modal">
+        <div class="modal-content exit-confirm-modal-content">
+            <div class="exit-confirm-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 16v-4"/>
+                    <path d="M12 8h.01"/>
+                </svg>
+            </div>
+            <div class="exit-confirm-header">
+                <h3>确认返回</h3>
+                <p class="exit-confirm-message">您有未保存的更改，确定要返回导航页面吗？</p>
+            </div>
+            <div class="exit-confirm-actions">
+                <button id="cancel-exit" class="btn btn-secondary">取消</button>
+                <button id="confirm-exit" class="btn btn-danger">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保存确认模态框 -->
+    <div id="save-confirm-modal" class="modal">
+        <div class="modal-content save-confirm-modal-content">
+            <div class="modal-header">
+                <h3>保存更改</h3>
+                <button class="close-btn" id="close-save-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="save-confirm-body">
+                <div class="changes-summary">
+                    <p>以下是您的更改内容：</p>
+                    <div id="changes-list" class="changes-list">
+                        <!-- 更改内容将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+            </div>
+            <div class="save-confirm-actions">
+                <button id="save-all" class="btn btn-primary">保存全部</button>
+                <button id="cancel-save" class="btn btn-secondary">撤销全部</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载指示器 -->
+    <div id="loading-indicator" class="loading-indicator">
+        <div class="loading-spinner"></div>
+        <p>正在加载...</p>
+    </div>
+
+    <script src="shared.js"></script>
+    <script src="edit.js"></script>
+</body>
+</html> 

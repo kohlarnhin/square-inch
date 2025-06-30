@@ -11,6 +11,8 @@ class SquareInch {
         this.draggedElement = null; // 被拖拽的元素
         this.draggedId = null; // 被拖拽的网站ID
 
+
+
         this.init();
     }
 
@@ -155,8 +157,7 @@ class SquareInch {
     // 从本地存储加载网站
     async loadSites() {
         try {
-            const stored = localStorage.getItem('square-inch-sites');
-            this.sites = stored ? JSON.parse(stored) : this.getExampleSites();
+            this.sites = DataManager.getSites();
 
             // 数据兼容性处理：为旧数据添加 sortOrder 字段
             this.sites.forEach(site => {
@@ -167,61 +168,20 @@ class SquareInch {
 
             // 初始化排序：为没有排序信息的数据生成排序
             this.initializeSortOrder();
-
-            // 如果是第一次使用，保存示例网站
-            if (!stored) {
-                await this.saveSites();
-            }
         } catch (error) {
             console.error('加载网站失败:', error);
-            this.sites = this.getExampleSites();
+            this.sites = DataManager.getExampleSites();
         }
     }
 
 
 
-    // 获取示例网站
-    getExampleSites() {
-        return [
-            {
-                id: this.generateId(),
-                name: '示例一',
-                url: 'https://example1.com',
-                icon: '',
-                tags: ['example-work'], // 对应工作标签
-                sortOrder: {} // 每个标签的排序
-            },
-            {
-                id: this.generateId(),
-                name: '示例二',
-                url: 'https://example2.com',
-                icon: '',
-                tags: ['example-study'], // 对应学习标签
-                sortOrder: {}
-            },
-            {
-                id: this.generateId(),
-                name: '示例三',
-                url: 'https://example3.com',
-                icon: '',
-                tags: ['example-life'], // 对应生活标签
-                sortOrder: {}
-            },
-            {
-                id: this.generateId(),
-                name: '示例四',
-                url: 'https://example4.com',
-                icon: '',
-                tags: ['example-work', 'example-study'], // 多个标签
-                sortOrder: {}
-            }
-        ];
-    }
+
 
     // 保存网站到本地存储
     async saveSites() {
         try {
-            localStorage.setItem('square-inch-sites', JSON.stringify(this.sites));
+            await DataManager.saveSites(this.sites);
         } catch (error) {
             console.error('保存网站失败:', error);
         }
@@ -534,13 +494,8 @@ class SquareInch {
 
     // 生成唯一ID
     generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        return DataManager.generateId();
     }
-
-
-
-    // 获取默认图标
-
 
     // 获取域名
     getDomain(url) {
@@ -616,20 +571,8 @@ class SquareInch {
             document.getElementById('bookmark-url').value = site.url;
             document.getElementById('bookmark-icon').value = site.icon || '';
 
-            // 使用 setTimeout 确保 DOM 更新完成后再设置选中状态
-            setTimeout(() => {
-            const tagsSelector = document.getElementById('bookmark-tags');
-            const tagOptions = tagsSelector.querySelectorAll('.select-option');
-            tagOptions.forEach(option => {
-                const tagId = option.dataset.tagId;
-                if (site.tags && site.tags.includes(tagId)) {
-                    option.classList.add('selected');
-                } else {
-                    option.classList.remove('selected');
-                }
-            });
-            this.updateSelectDisplay(tagsSelector);
-            }, 0);
+            // 设置标签选中状态
+            this.setTagSelection(site.tags || []);
 
             this.currentEditingId = site.id;
         } else {
@@ -642,7 +585,7 @@ class SquareInch {
                 const tagsSelector = document.getElementById('bookmark-tags');
                 const tagOptions = tagsSelector.querySelectorAll('.select-option');
                 tagOptions.forEach(option => option.classList.remove('selected'));
-                this.updateSelectDisplay(tagsSelector);
+                this.updateSelectedTagsDisplay([]);
             }, 0);
             
             this.currentEditingId = null;
@@ -664,7 +607,7 @@ class SquareInch {
         const tagOptions = tagsSelector.querySelectorAll('.select-option');
         tagOptions.forEach(option => option.classList.remove('selected'));
         tagsSelector.classList.remove('open');
-        this.updateSelectDisplay(tagsSelector);
+        this.updateSelectedTagsDisplay([]);
     }
 
     // 处理表单提交
@@ -1158,6 +1101,16 @@ class SquareInch {
             const card = e.target.closest('.nav-card');
             if (!card) return;
 
+            // 编辑模式下禁用大部分点击功能
+            if (this.isEditMode) {
+                // 只允许添加卡片的点击
+                if (card.classList.contains('add-card')) {
+                    this.openModal();
+                }
+                // 阻止其他所有点击事件
+                return;
+            }
+
             // 处理添加卡片点击
             if (card.classList.contains('add-card')) {
                 this.openModal();
@@ -1343,44 +1296,19 @@ class SquareInch {
     // 加载标签
     async loadTags() {
         try {
-            const stored = localStorage.getItem('square-inch-tags');
-            this.tags = stored ? JSON.parse(stored) : this.getExampleTags();
-
-            // 如果是第一次使用，保存示例标签
-            if (!stored) {
-                await this.saveTags();
-            }
+            this.tags = DataManager.getTags();
         } catch (error) {
             console.error('加载标签失败:', error);
-            this.tags = this.getExampleTags();
+            this.tags = DataManager.getExampleTags();
         }
     }
 
-    // 获取示例标签
-    getExampleTags() {
-        return [
-            {
-                id: 'example-work',
-                name: '工作',
-                createdAt: new Date().toISOString()
-            },
-            {
-                id: 'example-study',
-                name: '学习',
-                createdAt: new Date().toISOString()
-            },
-            {
-                id: 'example-life',
-                name: '生活',
-                createdAt: new Date().toISOString()
-            }
-        ];
-    }
+
 
     // 保存标签
     async saveTags() {
         try {
-            localStorage.setItem('square-inch-tags', JSON.stringify(this.tags));
+            await DataManager.saveTags(this.tags);
         } catch (error) {
             console.error('保存标签失败:', error);
         }
@@ -1446,6 +1374,16 @@ class SquareInch {
         document.getElementById('tags-list').addEventListener('click', (e) => {
             const tagItem = e.target.closest('.tag-item');
             if (!tagItem) return;
+
+            // 编辑模式下禁用大部分标签功能
+            if (this.isEditMode) {
+                // 只允许添加标签
+                if (tagItem.dataset.action === 'add-tag') {
+                    this.openTagModal();
+                }
+                // 阻止其他点击事件
+                return;
+            }
 
             // 处理删除标签按钮
             if (e.target.closest('.tag-delete')) {
@@ -2240,7 +2178,7 @@ class SquareInch {
 
     // 生成唯一ID
     generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        return DataManager.generateId();
     }
 
     // 重置标签选择器分页状态
@@ -2396,11 +2334,21 @@ class SquareInch {
 
     // 初始化自定义下拉列表
     initCustomSelect(selector) {
+        // 防止重复初始化
+        if (selector.dataset.initialized === 'true') {
+            return;
+        }
+        
         const trigger = selector.querySelector('.select-trigger');
         const optionsContainer = selector.querySelector('.select-options');
 
         // 点击触发器切换下拉列表
         trigger.addEventListener('click', (e) => {
+            // 如果点击的是删除按钮，不处理
+            if (e.target.classList.contains('remove-tag') || e.target.closest('.remove-tag')) {
+                return;
+            }
+            
             e.stopPropagation();
             // 关闭其他可能打开的选择器
             document.querySelectorAll('.custom-select.open').forEach(select => {
@@ -2416,13 +2364,18 @@ class SquareInch {
             const option = e.target.closest('.select-option');
             if (option && !option.classList.contains('disabled') && !option.classList.contains('add-new-tag')) {
                 option.classList.toggle('selected');
-                this.updateSelectDisplay(selector);
+                
+                // 获取当前选中的标签
+                const selectedTagIds = Array.from(selector.querySelectorAll('.select-option.selected'))
+                    .map(opt => opt.dataset.tagId);
+                
+                this.updateSelectedTagsDisplay(selectedTagIds);
             }
         });
 
         // 只绑定一次全局点击事件
         if (!document.body.dataset.customSelectInitialized) {
-        document.addEventListener('click', (e) => {
+            document.addEventListener('click', (e) => {
                 // 关闭所有打开的自定义选择器
                 document.querySelectorAll('.custom-select.open').forEach(select => {
                     if (!select.contains(e.target)) {
@@ -2433,25 +2386,107 @@ class SquareInch {
             document.body.dataset.customSelectInitialized = 'true';
         }
 
+        // 标记为已初始化
+        selector.dataset.initialized = 'true';
+        
         // 初始化显示
         this.updateSelectDisplay(selector);
     }
 
     // 更新选择器显示
     updateSelectDisplay(selector) {
-        const selectedOptions = selector.querySelectorAll('.select-option.selected');
-        const placeholder = selector.querySelector('.select-placeholder');
+        // 选择器显示现在由 updateSelectedTagsDisplay 方法处理
+        // 这里不需要单独处理占位符
+        return;
+    }
 
-        if (selectedOptions.length === 0) {
-            placeholder.textContent = '选择标签...';
-            placeholder.classList.remove('has-selection');
-        } else {
-            const selectedNames = Array.from(selectedOptions).map(option =>
-                option.querySelector('.option-label').textContent
-            );
-            placeholder.textContent = `已选择 ${selectedOptions.length} 个标签: ${selectedNames.join(', ')}`;
-            placeholder.classList.add('has-selection');
+    // 设置标签选择状态 
+    setTagSelection(selectedTagIds) {
+        // 使用requestAnimationFrame确保DOM渲染完成
+        requestAnimationFrame(() => {
+            const tagsSelector = document.getElementById('bookmark-tags');
+            const tagOptions = tagsSelector.querySelectorAll('.select-option:not(.add-new-tag)');
+            
+            tagOptions.forEach(option => {
+                const tagId = option.dataset.tagId;
+                if (selectedTagIds.includes(tagId)) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+            
+            this.updateSelectedTagsDisplay(selectedTagIds);
+        });
+    }
+
+    // 更新已选择标签显示
+    updateSelectedTagsDisplay(selectedTagIds) {
+        const displayContainer = document.getElementById('selected-tags-inline');
+        if (!displayContainer) return;
+
+        // 清空内容
+        displayContainer.innerHTML = '';
+
+        // 始终添加占位符
+        const placeholder = document.createElement('span');
+        placeholder.className = 'select-placeholder';
+        placeholder.textContent = '选择标签...';
+        displayContainer.appendChild(placeholder);
+
+        if (selectedTagIds.length === 0) {
+            placeholder.classList.remove('hidden');
+            return;
         }
+
+        // 隐藏占位符
+        placeholder.classList.add('hidden');
+
+        // 创建标签方块
+        selectedTagIds.forEach(tagId => {
+            const tag = this.tags.find(t => t.id === tagId);
+            if (!tag) return;
+
+            const tagElement = document.createElement('span');
+            tagElement.className = 'selected-tag';
+            tagElement.innerHTML = `
+                ${DataManager.escapeHtml(tag.name)}
+                <button type="button" class="remove-tag" data-tag-id="${tagId}">×</button>
+            `;
+
+            displayContainer.appendChild(tagElement);
+        });
+
+        // 重新绑定删除按钮事件
+        this.bindTagRemoveEvents();
+    }
+
+    // 绑定标签删除按钮事件
+    bindTagRemoveEvents() {
+        const removeButtons = document.querySelectorAll('.selected-tags-inline .remove-tag');
+        removeButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.removeTagFromSelection(btn.dataset.tagId);
+            });
+        });
+    }
+
+    // 从选择中移除标签
+    removeTagFromSelection(tagId) {
+        // 取消标签选中状态
+        const tagsSelector = document.getElementById('bookmark-tags');
+        const option = tagsSelector.querySelector(`[data-tag-id="${tagId}"]`);
+        if (option) {
+            option.classList.remove('selected');
+        }
+
+        // 获取当前选中的标签
+        const selectedTagIds = Array.from(tagsSelector.querySelectorAll('.select-option.selected'))
+            .map(opt => opt.dataset.tagId);
+
+        // 更新显示
+        this.updateSelectedTagsDisplay(selectedTagIds);
     }
 
     // 初始化导入导出功能
@@ -2921,55 +2956,15 @@ class SquareInch {
         this.importData = null;
     }
 
-    // 显示提示消息
+    // 显示提示消息 - 使用beautiful-notice组件
     showToast(message, type = 'info') {
-        // 创建提示元素
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        toast.textContent = message;
-
-        // 添加样式
-        Object.assign(toast.style, {
-            position: 'fixed',
-            top: '2rem',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            padding: '1rem 1.5rem',
-            borderRadius: '8px',
-            color: 'white',
-            fontWeight: '500',
-            zIndex: '10000',
-            opacity: '0',
-            transition: 'all 0.3s ease'
+        // 使用DataManager的beautiful-notice组件
+        DataManager.createNotice({
+            type: type,
+            message: message,
+            dismissible: true,
+            duration: 3000
         });
-
-        // 设置背景色
-        const colors = {
-            success: '#10b981',
-            error: '#ef4444',
-            info: '#3b82f6'
-        };
-        toast.style.backgroundColor = colors[type] || colors.info;
-
-        // 添加到页面
-        document.body.appendChild(toast);
-
-        // 显示动画
-        setTimeout(() => {
-            toast.style.opacity = '1';
-            toast.style.transform = 'translateX(-50%) translateY(0)';
-        }, 100);
-
-        // 自动移除
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateX(-50%) translateY(-1rem)';
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    document.body.removeChild(toast);
-                }
-            }, 300);
-        }, 3000);
     }
 
     // 检查并显示示例数据提示
@@ -3000,7 +2995,17 @@ class SquareInch {
         return this.sites.some(site => site.url.includes('example')) ||
                this.tags.some(tag => tag.id.startsWith('example-'));
     }
+
+    // =================
+    // 编辑模式相关方法
+    // =================
+
+    // 初始化编辑模式事件
+
+
 }
 
 // 初始化应用
-const squareInch = new SquareInch();
+document.addEventListener('DOMContentLoaded', () => {
+    new SquareInch();
+});

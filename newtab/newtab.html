@@ -11,6 +11,14 @@
     <main class="main-container">
         <!-- 工具栏 -->
         <div class="toolbar-container">
+            <!-- 编辑模式按钮 -->
+            <a href="edit.html" id="edit-mode-btn" class="toolbar-btn edit-mode-btn" title="编辑模式">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+            </a>
+
             <!-- 导入导出按钮 -->
             <div class="import-export-container">
                 <button id="export-btn" class="toolbar-btn export-btn" title="导出数据">
@@ -63,6 +71,8 @@
                 </svg>
             </button>
         </div>
+
+
 
         <!-- 插件介绍区域 -->
         <div class="intro-section">
@@ -170,10 +180,14 @@
                     <div class="custom-select-wrapper">
                         <div id="bookmark-tags" class="custom-select">
                             <div class="select-trigger">
-                                <span class="select-placeholder">选择标签...</span>
-                                <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="6,9 12,15 18,9"></polyline>
-                                </svg>
+                                <div class="select-content">
+                                    <div id="selected-tags-inline" class="selected-tags-inline">
+                                        <span class="select-placeholder">选择标签...</span>
+                                    </div>
+                                    <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6,9 12,15 18,9"></polyline>
+                                    </svg>
+                                </div>
                             </div>
                             <div class="select-options">
                                 <!-- 标签选项将通过 JavaScript 动态生成 -->
@@ -403,6 +417,9 @@
         <p>正在加载...</p>
     </div>
 
+
+
+    <script src="shared.js"></script>
     <script src="newtab.js"></script>
 </body>
 </html>

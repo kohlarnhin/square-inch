@@ -27,6 +27,31 @@
     --shadow-medium: rgba(0, 0, 0, 0.08);
     --shadow-heavy: rgba(0, 0, 0, 0.12);
     --card-hover: #f9fafb;
+    
+    /* 🎨 优雅设计代币系统 */
+    /* 渐变背景族 */
+    --gradient-info: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.05));
+    --gradient-success: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(34, 197, 94, 0.05));
+    --gradient-warning: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.05));
+    --gradient-error: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 53, 69, 0.05));
+    
+    /* 同色系边框 */
+    --border-info: rgba(59, 130, 246, 0.2);
+    --border-success: rgba(16, 185, 129, 0.2);
+    --border-warning: rgba(245, 158, 11, 0.2);
+    --border-error: rgba(239, 68, 68, 0.2);
+    
+    /* 优雅阴影 */
+    --shadow-info: 0 4px 20px rgba(59, 130, 246, 0.15);
+    --shadow-success: 0 4px 20px rgba(16, 185, 129, 0.15);
+    --shadow-warning: 0 4px 20px rgba(245, 158, 11, 0.15);
+    --shadow-error: 0 4px 20px rgba(239, 68, 68, 0.15);
+    
+    /* 悬停强化阴影 */
+    --shadow-info-hover: 0 8px 30px rgba(59, 130, 246, 0.25);
+    --shadow-success-hover: 0 8px 30px rgba(16, 185, 129, 0.25);
+    --shadow-warning-hover: 0 8px 30px rgba(245, 158, 11, 0.25);
+    --shadow-error-hover: 0 8px 30px rgba(239, 68, 68, 0.25);
 }
 
 /* 暗黑模式 */
@@ -72,7 +97,7 @@ body {
     display: none;
 }
 
-/* 主容器 */
+/* 🏗️ 主容器 - 基于示例提示的优雅空间 */
 .main-container {
     max-width: 1400px;
     margin: 0 auto;
@@ -83,12 +108,19 @@ body {
     justify-content: flex-start;
     padding-top: 10vh;
     position: relative;
+    backdrop-filter: blur(20px);
 }
 
-/* 标签侧边栏 - 作为flex项目正常布局 */
+/* 🗂️ 标签侧边栏 - 透明容器，让标签卡片单独控制样式 */
 .tags-sidebar {
     width: 160px;
     flex-shrink: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    backdrop-filter: none;
 }
 
 /* 导航区域 - 包含标签和网格的整体容器 */
@@ -106,13 +138,14 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    padding: 1rem 0;
 }
 
-/* 标签项 */
+/* 🏷️ 标签项 - 保持原始布局，只统一网站卡片的颜色 */
 .tag-item {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(147, 51, 234, 0.03) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    border-radius: 12px;
     padding: 0.75rem 1rem;
     cursor: pointer;
     transition: var(--transition);
@@ -121,24 +154,27 @@ body {
     font-size: 0.875rem;
     color: var(--text-primary);
     position: relative;
-    min-height: 44px; /* 确保所有标签项有一致的高度 */
+    min-height: 44px;
+    box-shadow: 0 2px 8px var(--shadow-light);
+    backdrop-filter: blur(10px);
 }
 
 .tag-item:hover {
-    background: var(--card-hover);
-    border-color: var(--border-hover);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%);
+    border-color: rgba(59, 130, 246, 0.2);
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px var(--shadow-light);
+    box-shadow: 0 4px 12px var(--shadow-medium);
 }
 
 .tag-item.active {
-    background: var(--bg-secondary);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%);
+    border-color: rgba(59, 130, 246, 0.15);
     color: var(--text-primary);
-    border-color: var(--border-color);
     font-weight: 500;
+    box-shadow: 0 2px 8px var(--shadow-light);
 }
 
-/* 标签内容区域 */
+/* 标签内容区域 - 保持原始简单布局 */
 .tag-content {
     display: flex;
     align-items: center;
@@ -146,36 +182,40 @@ body {
     min-width: 0;
 }
 
-/* 标签文字 */
+/* 标签文字 - 保持原始样式 */
 .tag-name {
     flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.2; /* 统一行高 */
+    line-height: 1.2;
 }
 
-/* 标签计数 */
+/* 标签计数 - 保持原始徽章样式 */
 .tag-count {
     font-size: 0.75rem;
-    opacity: 0.7;
-    margin-left: 0.5rem;
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--text-secondary);
+    padding: 0.125rem 0.375rem;
+    border-radius: 8px;
+    font-weight: 500;
+    margin-left: auto;
     flex-shrink: 0;
-    line-height: 1.2; /* 与标签名称保持一致的行高 */
-    width: 20px; /* 固定宽度确保对齐 */
-    text-align: right; /* 右对齐 */
+    min-width: 1.5rem;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.1);
 }
 
-/* 标签操作区域 */
+/* 标签操作区域 - 保持原始简单布局 */
 .tag-actions {
-    width: 24px; /* 固定宽度，为删除按钮预留空间 */
+    width: 24px;
     display: flex;
     justify-content: center;
     align-items: center;
     margin-left: 0.5rem;
 }
 
-/* 标签删除按钮 */
+/* 标签删除按钮 - 保持原始简单样式 */
 .tag-delete {
     opacity: 0;
     padding: 0.25rem;
@@ -198,31 +238,30 @@ body {
 
 .tag-delete:hover {
     background: var(--card-hover);
-    animation: rotate-90 0.3s ease-in-out;
+    transform: scale(1.05);
 }
 
-@keyframes rotate-90 {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(90deg); }
-}
 
-/* 添加标签按钮 */
+
+/* 添加标签按钮 - 保持原始样式，只统一颜色 */
 .add-tag-item {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-light);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(147, 51, 234, 0.03) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.1);
     color: var(--text-secondary);
     justify-content: center;
     align-items: center;
     position: relative;
     overflow: hidden;
     transition: var(--transition);
+    backdrop-filter: blur(10px);
 }
 
 .add-tag-item:hover {
-    background: var(--card-hover);
-    border-color: var(--border-hover);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%);
+    border-color: rgba(59, 130, 246, 0.2);
     color: var(--text-primary);
     transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 4px 12px var(--shadow-medium);
 }
 
 .add-tag-item .add-tag-icon {
@@ -254,9 +293,10 @@ body {
     gap: 0.5rem;
 }
 
+/* 🔧 工具栏按钮 - 基于示例提示的精致工具 */
 .toolbar-btn {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.15);
     border-radius: 50%;
     width: 40px;
     height: 40px;
@@ -265,16 +305,18 @@ body {
     justify-content: center;
     cursor: pointer;
     transition: var(--transition);
-    color: var(--text-secondary);
-    box-shadow: 0 2px 8px var(--shadow-light);
+    color: #3b82f6;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
     position: relative;
+    backdrop-filter: blur(10px);
 }
 
 .toolbar-btn:hover {
-    background: var(--card-hover);
-    border-color: var(--border-hover);
-    box-shadow: 0 4px 12px var(--shadow-medium);
-    transform: scale(1.05);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%);
+    border-color: rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    transform: scale(1.05) translateY(-1px);
+    color: #2563eb;
 }
 
 /* 导入导出按钮特殊样式 */
@@ -548,6 +590,7 @@ body {
     margin-bottom: 2rem;
 }
 
+/* 🔍 搜索框 - 参考网站卡片的统一风格 */
 .search-container {
     position: relative;
     width: 100%;
@@ -557,25 +600,26 @@ body {
 .search-input {
     width: 100%;
     padding: 1rem 1rem 1rem 3rem;
-    border: 1px solid var(--border-light);
+    border: 1px solid rgba(59, 130, 246, 0.1);
     border-radius: 12px;
     font-size: 0.875rem;
-    background: var(--bg-primary);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(147, 51, 234, 0.03) 100%);
     color: var(--text-primary);
     transition: var(--transition);
     outline: none;
-    box-shadow: 0 1px 3px var(--shadow-light);
-}
-
-.search-input:focus {
-    border-color: var(--border-hover);
-    outline: none;
-    transform: translateY(-1px);
     box-shadow: 0 2px 8px var(--shadow-light);
 }
 
+.search-input:focus {
+    border-color: rgba(59, 130, 246, 0.2);
+    outline: none;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--shadow-medium);
+}
+
 .search-input::placeholder {
-    color: var(--text-light);
+    color: var(--text-secondary);
 }
 
 .search-icon {
@@ -608,32 +652,41 @@ body {
     background: var(--card-hover);
 }
 
-/* 搜索无结果状态 */
+/* 🔍 搜索无结果状态 - 基于示例提示样式的优雅升级 */
 .no-results {
-    grid-column: 1 / -1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem 2rem;
+    background: var(--gradient-info);
+    border: 1px solid var(--border-info);
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    margin: 2rem;
+    box-shadow: var(--shadow-info);
     text-align: center;
+    grid-column: 1 / -1;
+    animation: slideDown 0.4s ease-out;
+    transition: var(--transition);
+}
+
+.no-results:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-info-hover);
 }
 
 .no-results-icon {
     margin-bottom: 1.5rem;
-    color: var(--text-light);
+    color: #3b82f6;
+    filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.2));
 }
 
 .no-results-text {
     font-size: 1.125rem;
     font-weight: 500;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
 }
 
 .no-results-hint {
     font-size: 0.875rem;
-    color: var(--text-light);
+    color: var(--text-secondary);
 }
 
 .clock-container {
@@ -672,10 +725,10 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
-/* 导航卡片 */
+/* 🎴 导航卡片 - 基于示例提示的优雅设计 */
 .nav-card {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(147, 51, 234, 0.03) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.1);
     padding: 1.25rem;
     text-decoration: none;
     color: var(--text-primary);
@@ -687,35 +740,39 @@ body {
     align-items: center;
     text-align: left;
     gap: 1rem;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px var(--shadow-medium);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px var(--shadow-light);
     min-height: 90px;
+    backdrop-filter: blur(10px);
 }
 
 .nav-card:hover {
-    box-shadow: 0 6px 20px var(--shadow-heavy);
-    border-color: var(--border-hover);
-    transform: translateY(-2px);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%);
+    border-color: rgba(59, 130, 246, 0.2);
+    box-shadow: 0 4px 12px var(--shadow-medium);
+    transform: translateY(-1px);
 }
 
-/* 添加卡片 */
+/* ➕ 添加卡片 - 基于示例提示的邀请性设计 */
 .add-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-light);
-    color: var(--text-secondary);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(34, 197, 94, 0.05) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    color: #10b981;
     justify-content: center;
     align-items: center;
     position: relative;
     overflow: hidden;
     transition: var(--transition);
+    border-style: dashed;
 }
 
 .add-card:hover {
-    background: var(--card-hover);
-    border-color: var(--border-hover);
-    color: var(--text-primary);
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 6px 20px var(--shadow-medium);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(34, 197, 94, 0.1) 100%);
+    border-color: rgba(16, 185, 129, 0.3);
+    border-style: solid;
+    color: #059669;
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
 }
 
 .add-card .add-icon {
@@ -1215,8 +1272,7 @@ body {
     .toast-container {
         top: 1rem;
         right: 1rem;
-        left: 1rem;
-        max-width: none;
+        max-width: calc(100vw - 2rem);
     }
 
     .toast-content {
@@ -1358,7 +1414,7 @@ body {
     }
 }
 
-/* 模态框样式 - 简化设计 */
+/* 💫 模态框系统 - 基于示例提示的优雅对话 */
 .modal {
     display: none;
     position: fixed;
@@ -1368,24 +1424,27 @@ body {
     height: 100%;
     background: rgba(0, 0, 0, 0.4);
     z-index: 1000;
-    padding: 5vh 0; /* 增加顶部和底部间距 */
+    padding: 5vh 0;
     box-sizing: border-box;
+    backdrop-filter: blur(8px);
 }
 
 .modal.show {
     display: flex;
-    align-items: flex-start; /* 改为顶部对齐，配合padding */
+    align-items: flex-start;
     justify-content: center;
 }
 
+/* 💎 模态框内容 - 现代纯净设计 */
 .modal-content {
     background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
     max-width: 480px;
     width: 90%;
     overflow: visible;
-    box-shadow: 0 20px 40px var(--shadow-heavy);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    position: relative;
 }
 
 /* 添加网站弹窗需要更高以容纳标签选择器 */
@@ -1448,23 +1507,26 @@ body {
     font-size: 0.875rem;
 }
 
+/* 📝 表单输入 - 参考网站卡片的统一风格 */
 .form-group input {
     width: 100%;
     padding: 0.875rem 1rem;
-    border: 1px solid var(--border-light);
-    border-radius: 6px;
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    border-radius: 12px;
     font-size: 0.875rem;
     transition: var(--transition);
-    background: var(--bg-primary);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(147, 51, 234, 0.03) 100%);
     color: var(--text-primary);
     font-family: inherit;
+    box-shadow: 0 2px 8px var(--shadow-light);
 }
 
 .form-group input:focus {
     outline: none;
-    border-color: var(--border-hover);
+    border-color: rgba(59, 130, 246, 0.2);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%);
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px var(--shadow-light);
+    box-shadow: 0 4px 12px var(--shadow-medium);
 }
 
 /* URL协议说明 */
@@ -1487,14 +1549,27 @@ body {
     box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
 }
 
+/* ⚠️ 表单错误提示 - 基于示例提示样式的优雅升级 */
 .field-error-message {
+    background: var(--gradient-error);
+    border: 1px solid var(--border-error);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 0.75rem;
     color: #dc3545;
-    margin-top: 0.5rem;
     line-height: 1.4;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.25rem;
+    box-shadow: var(--shadow-error);
+    animation: slideDown 0.3s ease-out;
+}
+
+.field-error-message::before {
+    content: "⚠️";
+    font-size: 1rem;
+    flex-shrink: 0;
 }
 
 /* 自定义多选下拉列表 */
@@ -1507,17 +1582,19 @@ body {
     width: 100%;
 }
 
+/* 🎛️ 自定义选择器触发器 - 参考网站卡片的统一风格 */
 .select-trigger {
     display: block;
     padding: 0.5rem 0.75rem;
-    border: 1px solid var(--border-light);
-    border-radius: 6px;
-    background: var(--bg-primary);
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(147, 51, 234, 0.03) 100%);
     color: var(--text-primary);
     cursor: pointer;
     transition: var(--transition);
     min-height: 48px;
     position: relative;
+    box-shadow: 0 2px 8px var(--shadow-light);
 }
 
 .select-content {
@@ -1545,50 +1622,60 @@ body {
     display: none;
 }
 
+/* 🎨 标签方块 - 基于示例提示的蓝紫色主题 */
 .selected-tags-inline .selected-tag {
     display: inline-flex;
     align-items: center;
-    padding: 0.2rem 0.5rem;
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-light);
-    border-radius: 4px;
+    padding: 0.375rem 0.75rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
     font-size: 0.75rem;
-    gap: 0.25rem;
+    font-weight: 500;
+    gap: 0.375rem;
     transition: var(--transition);
     margin: 0;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
 }
 
+/* ❌ 标签删除按钮 - 蓝紫色主题交互设计 */
 .selected-tags-inline .selected-tag .remove-tag {
     cursor: pointer;
-    width: 12px;
-    height: 12px;
-    opacity: 0.8;
+    width: 16px;
+    height: 16px;
+    opacity: 0.6;
     transition: var(--transition);
-    color: var(--text-secondary);
+    color: #64748b;
     background: none;
     border: none;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 12px;
+    border-radius: 50%;
 }
 
 .selected-tags-inline .selected-tag .remove-tag:hover {
     opacity: 1;
-    color: var(--text-primary);
+    color: #dc2626;
+    background: rgba(239, 68, 68, 0.1);
     transform: scale(1.1);
 }
 
 .select-trigger:hover {
-    border-color: var(--border-hover);
+    border-color: rgba(59, 130, 246, 0.2);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--shadow-medium);
 }
 
 .custom-select.open .select-trigger {
-    border-color: var(--border-hover);
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
+    border-color: rgba(59, 130, 246, 0.2);
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    box-shadow: 0 4px 12px var(--shadow-medium);
 }
 
 .select-placeholder {
@@ -1609,18 +1696,19 @@ body {
     transform: rotate(180deg);
 }
 
+/* 🎭 选择器选项列表 - 与网站卡片完全一致的实心背景 */
 .select-options {
     position: absolute;
     top: 100%;
     left: 0;
     right: 0;
     background: var(--bg-primary);
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--border-color);
     border-top: none;
-    border-bottom-left-radius: 6px;
-    border-bottom-right-radius: 6px;
-    box-shadow: 0 4px 12px var(--shadow-medium);
-    z-index: 1000;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    box-shadow: 0 6px 20px var(--shadow-heavy);
+    z-index: 9999;
     display: none;
     overflow: hidden;
 }
@@ -1651,18 +1739,18 @@ body {
 }
 
 .select-option:hover {
-    background: var(--card-hover);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%);
 }
 
 .select-option.selected {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
+    color: #3b82f6;
     font-weight: 500;
     position: relative;
 }
 
 .select-option.selected:hover {
-    background: var(--card-hover);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%);
 }
 
 .select-option.selected::after {
@@ -1724,31 +1812,43 @@ body {
 
 /* 选中标签显示（已弃用，使用 .selected-tags-display 代替） */
 
+/* 🎨 通用标签方块 - 基于示例提示的蓝紫色主题 */
 .selected-tag {
     display: inline-flex;
     align-items: center;
-    padding: 0.25rem 0.5rem;
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-light);
-    border-radius: 6px;
+    padding: 0.375rem 0.75rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
     font-size: 0.75rem;
-    gap: 0.25rem;
+    font-weight: 500;
+    gap: 0.375rem;
     transition: var(--transition);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
 }
 
 .selected-tag .remove-tag {
     cursor: pointer;
-    width: 12px;
-    height: 12px;
-    opacity: 0.8;
+    width: 16px;
+    height: 16px;
+    opacity: 0.6;
     transition: var(--transition);
-    color: var(--text-secondary);
+    color: #64748b;
+    border-radius: 50%;
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
 }
 
 .selected-tag .remove-tag:hover {
     opacity: 1;
-    color: var(--text-primary);
+    color: #dc2626;
+    background: rgba(239, 68, 68, 0.1);
     transform: scale(1.1);
 }
 
@@ -1785,40 +1885,49 @@ body {
     font-family: inherit;
 }
 
+/* 🎯 模态框按钮 - 完全基于示例提示的原始优雅样式 */
 .btn-primary {
-    background: var(--text-primary);
-    color: var(--bg-primary);
-    border: 1px solid var(--text-primary);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    box-shadow: 0 2px 8px var(--shadow-light);
+    color: var(--text-primary);
+    font-weight: 500;
 }
 
 .btn-primary:hover {
-    background: var(--text-secondary);
-    border-color: var(--text-secondary);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--shadow-medium);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%);
+    border-color: rgba(59, 130, 246, 0.3);
 }
 
 .btn-secondary {
     background: var(--bg-secondary);
-    color: var(--text-primary);
     border: 1px solid var(--border-light);
+    box-shadow: 0 2px 8px var(--shadow-light);
+    color: var(--text-primary);
 }
 
 .btn-secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--shadow-medium);
     background: var(--card-hover);
     border-color: var(--border-hover);
-    transform: translateY(-1px);
 }
 
 .btn-danger {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-light);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 53, 69, 0.1) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    box-shadow: 0 2px 8px var(--shadow-light);
+    color: #dc3545;
+    font-weight: 500;
 }
 
 .btn-danger:hover {
-    background: var(--card-hover);
-    border-color: var(--border-hover);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--shadow-medium);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 53, 69, 0.15) 100%);
+    border-color: rgba(239, 68, 68, 0.3);
 }
 
 /* 删除确认弹窗样式 */
@@ -2363,7 +2472,7 @@ body {
     }
 }
 
-/* Toast 通知样式 */
+/* 🚀 Toast通知系统 - 基于示例提示样式的优雅升级 */
 .toast-container {
     position: fixed;
     top: 20px;
@@ -2377,15 +2486,22 @@ body {
 }
 
 .toast {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px var(--shadow-heavy);
+    background: var(--gradient-success);
+    border: 1px solid var(--border-success);
+    border-radius: 12px;
+    box-shadow: var(--shadow-success);
+    border-left: 4px solid #10b981;
+    backdrop-filter: blur(10px);
     pointer-events: auto;
     transform: translateX(100%);
     opacity: 0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
+}
+
+.toast:hover {
+    transform: translateX(0) translateY(-2px);
+    box-shadow: var(--shadow-success-hover);
 }
 
 .toast.show {
@@ -2394,15 +2510,51 @@ body {
 }
 
 .toast.delete-success {
+    background: var(--gradient-success);
+    border: 1px solid var(--border-success);
     border-left: 4px solid #10b981;
+}
+
+.toast.error {
+    background: var(--gradient-error);
+    border: 1px solid var(--border-error);
+    border-left: 4px solid #ef4444;
+    box-shadow: var(--shadow-error);
+}
+
+.toast.error:hover {
+    box-shadow: var(--shadow-error-hover);
+}
+
+.toast.warning {
+    background: var(--gradient-warning);
+    border: 1px solid var(--border-warning);
+    border-left: 4px solid #f59e0b;
+    box-shadow: var(--shadow-warning);
+}
+
+.toast.warning:hover {
+    box-shadow: var(--shadow-warning-hover);
+}
+
+.toast.info {
+    background: var(--gradient-info);
+    border: 1px solid var(--border-info);
+    border-left: 4px solid #3b82f6;
+    box-shadow: var(--shadow-info);
+}
+
+.toast.info:hover {
+    box-shadow: var(--shadow-info-hover);
 }
 
 .toast-content {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 1rem;
+    padding: 1rem 1.25rem;
     min-height: 60px;
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .toast-icon {
@@ -2683,15 +2835,29 @@ body {
     flex-shrink: 0;
 }
 
+/* 🗑️ 空回收站状态 - 基于示例提示样式的优雅升级 */
 .empty-recycle-bin {
-    text-align: center;
+    background: var(--gradient-warning);
+    border: 1px solid var(--border-warning);
+    border-radius: 16px;
     padding: 3rem 2rem;
+    margin: 1rem;
+    text-align: center;
     color: var(--text-secondary);
+    box-shadow: var(--shadow-warning);
+    animation: slideDown 0.4s ease-out;
+    transition: var(--transition);
+}
+
+.empty-recycle-bin:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-warning-hover);
 }
 
 .empty-recycle-bin-icon {
     margin-bottom: 1rem;
-    opacity: 0.5;
+    opacity: 0.7;
+    filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.2));
 }
 
 .recycle-bin-modal-actions {

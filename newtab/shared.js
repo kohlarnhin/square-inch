@@ -260,19 +260,28 @@ class DataManager {
             </svg>`
         };
 
+        // 创建或获取固定toast容器（右上角）
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.className = 'toast-container';
+            document.body.appendChild(toastContainer);
+        }
+
         // 创建通知元素
         const noticeId = 'notice-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         const noticeHtml = `
-            <div id="${noticeId}" class="beautiful-notice ${type}">
-                <div class="notice-content">
-                    <div class="notice-icon">
+            <div id="${noticeId}" class="toast ${type}">
+                <div class="toast-content">
+                    <div class="toast-icon">
                         ${icon || icons[type] || icons.info}
                     </div>
-                    <div class="notice-message">
-                        ${this.escapeHtml(message)}
+                    <div class="toast-message">
+                        <span class="toast-title">${this.escapeHtml(message)}</span>
                     </div>
                     ${dismissible ? `
-                        <button type="button" class="notice-action dismiss-notice" title="关闭">
+                        <button type="button" class="toast-close" title="关闭">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -283,17 +292,20 @@ class DataManager {
             </div>
         `;
 
-        // 插入到指定容器或body
-        const container = containerId ? document.getElementById(containerId) : document.body;
-        container.insertAdjacentHTML('afterbegin', noticeHtml);
+        // 插入到toast容器
+        toastContainer.insertAdjacentHTML('beforeend', noticeHtml);
         
         const noticeElement = document.getElementById(noticeId);
+
+        // 显示动画
+        setTimeout(() => {
+            noticeElement.classList.add('show');
+        }, 10);
 
         // 关闭函数
         const dismiss = () => {
             if (noticeElement && noticeElement.parentNode) {
-                noticeElement.style.opacity = '0';
-                noticeElement.style.transform = 'translateY(-10px)';
+                noticeElement.classList.remove('show');
                 setTimeout(() => {
                     if (noticeElement.parentNode) {
                         noticeElement.parentNode.removeChild(noticeElement);
@@ -305,7 +317,7 @@ class DataManager {
 
         // 绑定关闭事件
         if (dismissible) {
-            const dismissBtn = noticeElement.querySelector('.dismiss-notice');
+            const dismissBtn = noticeElement.querySelector('.toast-close');
             if (dismissBtn) {
                 dismissBtn.addEventListener('click', dismiss);
             }

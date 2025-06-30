@@ -79,6 +79,9 @@ class SquareInch {
             this.handleFormSubmit(e);
         });
 
+        // 输入框失去焦点时校验
+        this.initFormValidation();
+
         // 删除确认
         document.getElementById('confirm-delete').addEventListener('click', () => {
             this.confirmDelete();
@@ -683,7 +686,14 @@ class SquareInch {
 
         // 验证数据
         if (!siteData.name || !siteData.url) {
-            alert('请填写网站名称和网址');
+            this.showToast('请填写网站名称和网站地址', 'error');
+            return;
+        }
+
+        // 表单提交时的最终校验（焦点校验可能被跳过）
+        const urlValidation = this.validateUrl(siteData.url, this.currentEditingId);
+        if (!urlValidation.isValid) {
+            this.showToast(urlValidation.message, 'error');
             return;
         }
 
@@ -883,14 +893,142 @@ class SquareInch {
         this.currentEditingId = null;
     }
 
-    // 验证 URL 格式
+    // 验证 URL 格式 - 支持任何协议格式
     isValidUrl(string) {
-        try {
-            const url = new URL(string);
-            return url.protocol === 'http:' || url.protocol === 'https:';
-        } catch {
+        if (!string || typeof string !== 'string') {
             return false;
         }
+        
+        // 检查是否包含协议（冒号）
+        if (!string.includes(':')) {
+            return false;
+        }
+        
+        try {
+            // 尝试用URL构造函数解析
+            const url = new URL(string);
+            // 只要能成功解析且有协议就认为有效
+            return url.protocol && url.protocol.length > 1;
+        } catch {
+            // 如果URL构造函数失败，检查是否是简单的protocol:xxx格式
+            const protocolMatch = string.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:.+/);
+            return !!protocolMatch;
+        }
+    }
+
+    // 检查URL是否全局唯一
+    isUrlUnique(url, excludeId = null) {
+        return !this.sites.some(site => 
+            site.url === url && site.id !== excludeId
+        );
+    }
+
+    // 综合URL校验方法
+    validateUrl(url, excludeId = null) {
+        if (!url || !url.trim()) {
+            return {
+                isValid: false,
+                message: '请输入网站地址'
+            };
+        }
+
+        const trimmedUrl = url.trim();
+
+        if (!this.isValidUrl(trimmedUrl)) {
+            return {
+                isValid: false,
+                message: '网站地址格式不正确，请输入包含协议的有效地址（如：https://example.com）'
+            };
+        }
+
+        if (!this.isUrlUnique(trimmedUrl, excludeId)) {
+            return {
+                isValid: false,
+                message: '该网站地址已存在，请输入不同的网址'
+            };
+        }
+
+        return {
+            isValid: true,
+            message: ''
+        };
+    }
+
+    // 显示输入框错误状态
+    showFieldError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        const formGroup = field.closest('.form-group');
+        
+        // 移除之前的错误状态
+        this.clearFieldError(fieldId);
+        
+        // 添加错误样式
+        field.classList.add('error');
+        formGroup.classList.add('error');
+        
+        // 添加错误消息
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'field-error-message';
+        errorDiv.textContent = message;
+        formGroup.appendChild(errorDiv);
+    }
+
+    // 清除输入框错误状态
+    clearFieldError(fieldId) {
+        const field = document.getElementById(fieldId);
+        const formGroup = field.closest('.form-group');
+        
+        if (field) {
+            field.classList.remove('error');
+        }
+        
+        if (formGroup) {
+            formGroup.classList.remove('error');
+            const errorMsg = formGroup.querySelector('.field-error-message');
+            if (errorMsg) {
+                errorMsg.remove();
+            }
+        }
+    }
+
+    // 初始化表单校验
+    initFormValidation() {
+        // 网站名称校验
+        const nameField = document.getElementById('bookmark-name');
+        nameField.addEventListener('blur', () => {
+            const value = nameField.value.trim();
+            if (!value) {
+                this.showFieldError('bookmark-name', '请输入网站名称');
+            } else {
+                this.clearFieldError('bookmark-name');
+            }
+        });
+
+        // 网站地址校验
+        const urlField = document.getElementById('bookmark-url');
+        urlField.addEventListener('blur', () => {
+            const value = urlField.value.trim();
+            const validation = this.validateUrl(value, this.currentEditingId);
+            
+            if (!validation.isValid) {
+                this.showFieldError('bookmark-url', validation.message);
+            } else {
+                this.clearFieldError('bookmark-url');
+            }
+        });
+
+        // 输入时清除错误状态
+        nameField.addEventListener('input', () => {
+            if (nameField.classList.contains('error')) {
+                this.clearFieldError('bookmark-name');
+            }
+        });
+
+        urlField.addEventListener('input', () => {
+            if (urlField.classList.contains('error')) {
+                this.clearFieldError('bookmark-url');
+            }
+        });
     }
 
     // 初始化搜索功能
@@ -1086,31 +1224,102 @@ class SquareInch {
         return this.currentTheme || 'light';
     }
 
-    // 打开URL的统一方法
+    // 打开URL的统一方法 - 支持任意协议
     openUrl(url) {
-        // 检查是否为浏览器内部协议
-        if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('edge://') || url.startsWith('about:')) {
-            // 对于浏览器内部协议，使用chrome.tabs.create API
+        if (!url) {
+            console.warn('URL为空，无法打开');
+            return;
+        }
+
+        console.log('尝试打开URL:', url);
+
+        // 方法1: 优先尝试使用chrome.tabs.create API（适用于浏览器扩展）
+        if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
             try {
-                if (chrome && chrome.tabs) {
-                    chrome.tabs.create({ url: url });
-                } else {
-                    // 如果chrome.tabs API不可用，则在当前窗口打开
-                    window.location.href = url;
-                }
+                chrome.tabs.create({ url: url }, (tab) => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('chrome.tabs.create失败:', chrome.runtime.lastError.message);
+                        this.fallbackOpenUrl(url);
+                    } else {
+                        console.log('成功使用chrome.tabs.create打开URL');
+                    }
+                });
+                return;
             } catch (error) {
-                console.warn('无法使用chrome.tabs API，使用fallback方法:', error);
-                window.location.href = url;
+                console.warn('chrome.tabs.create异常:', error);
             }
-        } else {
-            // 对于其他协议，先尝试在新标签页打开
-            try {
-                window.open(url, '_blank');
-            } catch (error) {
-                // 如果window.open失败，则直接导航
-                console.warn('window.open失败，使用fallback方法:', error);
-                window.location.href = url;
+        }
+
+        // 方法2: 如果chrome.tabs不可用，尝试其他方法
+        this.fallbackOpenUrl(url);
+    }
+
+    // 备用打开URL方法
+    fallbackOpenUrl(url) {
+        // 尝试使用window.open在新标签页打开
+        try {
+            const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+            if (newWindow) {
+                console.log('成功使用window.open打开URL');
+                // 检查窗口是否被阻止
+                setTimeout(() => {
+                    if (newWindow.closed) {
+                        console.warn('弹窗被阻止，尝试其他方法');
+                        this.directNavigateUrl(url);
+                    }
+                }, 100);
+            } else {
+                console.warn('window.open返回null，可能被弹窗阻止器拦截');
+                this.directNavigateUrl(url);
             }
+        } catch (error) {
+            console.warn('window.open失败:', error);
+            this.directNavigateUrl(url);
+        }
+    }
+
+    // 直接导航方法（最后的备用方案）
+    directNavigateUrl(url) {
+        try {
+            // 对于一些特殊协议，创建临时链接并点击
+            if (this.needsLinkClick(url)) {
+                this.openUrlViaLink(url);
+            } else {
+                // 直接在当前窗口打开
+                window.location.href = url;
+                console.log('使用window.location.href打开URL');
+            }
+        } catch (error) {
+            console.error('所有打开URL的方法都失败了:', error);
+            this.showToast('无法打开该地址，请检查地址格式是否正确', 'error');
+        }
+    }
+
+    // 检查是否需要使用链接点击方式打开
+    needsLinkClick(url) {
+        // 对于一些自定义协议，使用链接点击可能更有效
+        const customProtocols = ['file:', 'ftp:', 'mailto:', 'tel:', 'sms:'];
+        return customProtocols.some(protocol => url.toLowerCase().startsWith(protocol));
+    }
+
+    // 通过创建临时链接的方式打开URL
+    openUrlViaLink(url) {
+        try {
+            const link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.style.display = 'none';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            console.log('使用临时链接点击打开URL');
+        } catch (error) {
+            console.warn('临时链接方法失败:', error);
+            // 最后的备用方案
+            window.location.href = url;
         }
     }
 

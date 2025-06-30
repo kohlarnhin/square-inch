@@ -1300,6 +1300,36 @@ body {
     box-shadow: 0 2px 8px var(--shadow-light);
 }
 
+/* URL协议说明 */
+.url-protocol-note {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-top: 0.5rem;
+    line-height: 1.4;
+    opacity: 0.8;
+}
+
+/* 表单校验错误样式 */
+.form-group.error input {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1);
+}
+
+.form-group.error input:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+}
+
+.field-error-message {
+    font-size: 0.75rem;
+    color: #dc3545;
+    margin-top: 0.5rem;
+    line-height: 1.4;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
 /* 自定义多选下拉列表 */
 .custom-select-wrapper {
     position: relative;
